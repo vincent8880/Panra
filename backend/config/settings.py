@@ -21,6 +21,12 @@ ALLOWED_HOSTS = config(
     cast=lambda v: [s.strip() for s in v.split(',')]
 )
 
+# Automatically allow Railway domains if we're on Railway
+import os
+if os.getenv('RAILWAY_ENVIRONMENT') or os.getenv('RAILWAY_PROJECT_ID'):
+    # We're on Railway - allow all hosts (Railway handles routing/security)
+    ALLOWED_HOSTS = ['*']
+
 
 # Application definition
 INSTALLED_APPS = [
