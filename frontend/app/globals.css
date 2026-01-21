@@ -1,0 +1,101 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Polymarket color scheme */
+  --pm-bg-primary: #0a0a0a;
+  --pm-bg-secondary: #141414;
+  --pm-bg-card: #1a1a1a;
+  --pm-text-primary: #ffffff;
+  --pm-text-secondary: #a0a0a0;
+  --pm-border: #2a2a2a;
+  --pm-green: #00d4aa;
+  --pm-green-dark: #00b894;
+  --pm-red: #ff6b6b;
+  --pm-red-dark: #ee5a5a;
+  --pm-blue: #4dabf7;
+  --pm-yellow: #ffd43b;
+}
+
+* {
+  @apply border-pm-border;
+}
+
+body {
+  @apply bg-pm-bg-primary text-pm-text-primary;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+/* Polymarket-inspired styles */
+.market-card {
+  @apply bg-pm-bg-card rounded-lg border border-pm-border p-4 transition-all cursor-pointer;
+  background: var(--pm-bg-card);
+}
+
+.market-card:hover {
+  @apply border-pm-blue/50;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(77, 171, 247, 0.1);
+}
+
+/* Ensure links don't have default styling */
+a.no-underline {
+  text-decoration: none;
+  color: inherit;
+}
+
+.price-indicator {
+  @apply inline-flex items-center px-3 py-1.5 rounded text-sm font-semibold;
+}
+
+.price-yes {
+  @apply bg-pm-green/10 text-pm-green border border-pm-green/20;
+}
+
+.price-no {
+  @apply bg-pm-red/10 text-pm-red border border-pm-red/20;
+}
+
+.btn-primary {
+  @apply bg-pm-blue hover:bg-pm-blue/90 text-white font-medium py-2.5 px-6 rounded-lg transition-colors;
+}
+
+.btn-secondary {
+  @apply bg-pm-bg-secondary hover:bg-pm-bg-card text-pm-text-primary border border-pm-border font-medium py-2.5 px-6 rounded-lg transition-colors;
+}
+
+/* Polymarket navigation styles */
+.nav-link {
+  @apply text-pm-text-secondary hover:text-pm-text-primary transition-colors;
+}
+
+/* Polymarket input styles */
+.pm-input {
+  @apply bg-pm-bg-secondary border border-pm-border rounded-lg px-4 py-2.5 text-pm-text-primary placeholder:text-pm-text-secondary focus:outline-none focus:ring-2 focus:ring-pm-blue focus:border-transparent;
+}
+
+/* Polymarket tab styles */
+.pm-tab {
+  @apply px-4 py-2 text-sm font-medium text-pm-text-secondary hover:text-pm-text-primary transition-colors border-b-2 border-transparent;
+}
+
+.pm-tab-active {
+  @apply text-pm-text-primary border-pm-blue;
+}
+
+
+
+
+
+
+
+
