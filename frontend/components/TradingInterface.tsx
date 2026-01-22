@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Market, ordersApi } from '@/lib/api'
+import { Market, ordersApi } from '../lib/api'
 
 interface TradingInterfaceProps {
   market: Market
@@ -220,7 +220,7 @@ export function TradingInterface({ market }: TradingInterfaceProps) {
                     onClick={async () => {
                       try {
                         // Try to fetch user credits to calculate max
-                        const { usersApi } = await import('@/lib/api')
+                        const { usersApi } = await import('../lib/api')
                         const creditsData = await usersApi.getCredits()
                         const availableCredits = creditsData.credits
                         const priceNum = parseFloat(price)
@@ -248,7 +248,7 @@ export function TradingInterface({ market }: TradingInterfaceProps) {
                   onClick={async () => {
                     try {
                       // For market orders, use current price
-                      const { usersApi } = await import('@/lib/api')
+                      const { usersApi } = await import('../lib/api')
                       const creditsData = await usersApi.getCredits()
                       const availableCredits = creditsData.credits
                       const priceNum = currentPrice

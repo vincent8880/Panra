@@ -1,6 +1,6 @@
 import Link from 'next/link'
-import { MarketList } from '@/components/MarketList'
-import PanraLogo from '@/components/PanraIcon'
+import { MarketList } from '../components/MarketList'
+import PanraLogo from '../components/PanraIcon'
 
 export default function Home() {
   return (
