@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { marketsApi, Market } from '../lib/api'
+import { marketsApi, Market } from 'lib/api'
 import { formatDistanceToNow } from 'date-fns'
 
 export function MarketList() {

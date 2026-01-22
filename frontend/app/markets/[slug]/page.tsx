@@ -3,10 +3,10 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { marketsApi, Market } from '../../../lib/api'
+import { marketsApi, Market } from 'lib/api'
 import { formatDistanceToNow } from 'date-fns'
-import { TradingInterface } from '../../../components/TradingInterface'
-import PanraLogo from '../../../components/PanraIcon'
+import { TradingInterface } from 'components/TradingInterface'
+import PanraLogo from 'components/PanraIcon'
 
 export default function MarketDetailPage() {
   const params = useParams()
