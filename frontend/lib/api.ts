@@ -1,0 +1,122 @@
+import axios from 'axios'
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001/api'
+
+const api = axios.create({
+  baseURL: API_BASE_URL,
+  withCredentials: true,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+})
+
+export interface Market {
+  id: number
+  title: string
+  description: string
+  slug: string
+  question: string
+  category: string
+  image_url: string | null
+  status: 'open' | 'closed' | 'resolved' | 'cancelled'
+  resolution: 'yes' | 'no' | 'pending'
+  created_at: string
+  end_date: string
+  resolution_date: string | null
+  created_by_username: string
+  total_volume: string
+  total_liquidity: string
+  yes_price: string
+  no_price: string
+}
+
+export interface Order {
+  id: number
+  market: number
+  market_title: string
+  user: number
+  user_username: string
+  side: 'yes' | 'no'
+  order_type: 'limit' | 'market'
+  price: string
+  quantity: string
+  status: 'pending' | 'filled' | 'cancelled' | 'partial'
+  filled_quantity: string
+  created_at: string
+  updated_at: string
+  filled_at: string | null
+}
+
+export interface CreditStatus {
+  current: number
+  stored: number
+  max: number
+  days_inactive: number
+  next_decay_at: string | null
+  regenerating: boolean
+  hours_to_full_regen: number | null
+  regen_rate_per_hour: number
+}
+
+export interface User {
+  id: number
+  username: string
+  email: string
+  credits: number
+  current_credits: number
+  credit_status: CreditStatus
+  date_joined: string
+}
+
+export const marketsApi = {
+  getAll: async (params?: { status?: string; category?: string; search?: string }) => {
+    const response = await api.get<{ results: Market[] }>('/markets/', { params })
+    return response.data.results
+  },
+  
+  getById: async (id: number) => {
+    const response = await api.get<Market>(`/markets/${id}/`)
+    return response.data
+  },
+  
+  getBySlug: async (slug: string) => {
+    const response = await api.get<Market>(`/markets/${slug}/`)
+    return response.data
+  },
+}
+
+export const ordersApi = {
+  create: async (data: { market: number; side: 'yes' | 'no'; order_type: 'limit' | 'market'; price: string; quantity: string }) => {
+    const response = await api.post<Order>('/trading/orders/', data)
+    return response.data
+  },
+  
+  getAll: async () => {
+    const response = await api.get<Order[]>('/trading/orders/')
+    return response.data
+  },
+  
+  cancel: async (id: number) => {
+    const response = await api.post(`/trading/orders/${id}/cancel/`)
+    return response.data
+  },
+}
+
+export const usersApi = {
+  getMe: async () => {
+    const response = await api.get<User>('/auth/users/me/')
+    return response.data
+  },
+  
+  getCredits: async () => {
+    const response = await api.get<{ credits: number; status: CreditStatus }>('/auth/users/credits/')
+    return response.data
+  },
+}
+
+export default api
+
+
+
+
+
