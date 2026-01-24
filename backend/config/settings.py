@@ -164,6 +164,20 @@ CORS_ALLOWED_ORIGINS = config(
 
 CORS_ALLOW_CREDENTIALS = True
 
+# CSRF trusted origins for Railway domains
+CSRF_TRUSTED_ORIGINS = config(
+    'CSRF_TRUSTED_ORIGINS',
+    default=f'{FRONTEND_URL},http://localhost:3000,http://127.0.0.1:3000',
+    cast=lambda v: [s.strip() for s in v.split(',')]
+)
+
+# Automatically allow Railway domains for CSRF
+if os.getenv('RAILWAY_ENVIRONMENT') or os.getenv('RAILWAY_PROJECT_ID'):
+    # Add Railway backend domain to trusted origins
+    railway_domain = f"https://{os.getenv('RAILWAY_STATIC_URL', 'panra.up.railway.app')}"
+    if railway_domain not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(railway_domain)
+
 # Security settings for production
 if not DEBUG:
     SECURE_SSL_REDIRECT = config('SECURE_SSL_REDIRECT', default=False, cast=bool)
