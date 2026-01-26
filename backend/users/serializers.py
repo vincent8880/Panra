@@ -12,10 +12,17 @@ class UserSerializer(serializers.ModelSerializer):
     credits = serializers.DecimalField(max_digits=20, decimal_places=2, read_only=True)
     current_credits = serializers.SerializerMethodField()
     credit_status = serializers.SerializerMethodField()
+    rank = serializers.SerializerMethodField()
     
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'credits', 'current_credits', 'credit_status', 'date_joined']
+        fields = [
+            'id', 'username', 'email', 'credits', 'current_credits', 'credit_status',
+            'total_points', 'weekly_points', 'monthly_points',
+            'win_streak', 'best_win_streak', 'markets_predicted_correctly',
+            'total_markets_traded', 'accuracy_percentage', 'roi_percentage',
+            'date_joined', 'rank'
+        ]
         read_only_fields = ['id', 'date_joined']
     
     def get_current_credits(self, obj):
@@ -55,6 +62,13 @@ class UserSerializer(serializers.ModelSerializer):
             'hours_to_full_regen': round(hours_to_full, 2) if hours_to_full else None,
             'regen_rate_per_hour': float(regen_rate),
         }
+    
+    def get_rank(self, obj):
+        """Calculate user's rank based on total_points."""
+        if obj.total_points <= 0:
+            return None
+        rank = User.objects.filter(total_points__gt=obj.total_points).count() + 1
+        return rank
 
 
 class UserProfileSerializer(serializers.ModelSerializer):

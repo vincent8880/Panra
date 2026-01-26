@@ -9,6 +9,7 @@ from decimal import Decimal
 from .models import Order, Trade, Position
 from .serializers import OrderSerializer, TradeSerializer, PositionSerializer
 from markets.models import Market
+from .matching import match_orders
 
 
 class OrderViewSet(viewsets.ModelViewSet):
@@ -43,6 +44,19 @@ class OrderViewSet(viewsets.ModelViewSet):
         # Deduct credits when order is placed
         # Note: Credits will be adjusted when order is filled/cancelled
         user.update_credits_from_trade(-cost)
+        
+        # Try to match the order immediately
+        try:
+            trades = match_orders(order)
+            if trades:
+                # Order was (partially) filled
+                order.refresh_from_db()
+        except Exception as e:
+            # Log error but don't fail order creation
+            # The order will remain pending and can be matched later
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error matching order {order.id}: {str(e)}")
     
     @action(detail=False, methods=['get'])
     def open(self, request):

@@ -43,3 +43,6 @@ print(f"   Username: {username}")
 print(f"   Password: {password}")
 print(f"   Email: {email}")
 print(f"Total users: {User.objects.count()}")
+
+
+

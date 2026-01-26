@@ -102,6 +102,50 @@ export const ordersApi = {
   },
 }
 
+export interface LeaderboardUser {
+  id: number
+  username: string
+  total_points: number
+  weekly_points: number
+  monthly_points: number
+  win_streak: number
+  accuracy_percentage: number
+  roi_percentage: number
+  rank?: number
+}
+
+export interface UserStats {
+  user: {
+    id: number
+    username: string
+    total_points: number
+    weekly_points: number
+    monthly_points: number
+    rank: number
+  }
+  trading: {
+    win_streak: number
+    best_win_streak: number
+    markets_predicted_correctly: number
+    total_markets_traded: number
+    accuracy_percentage: number
+    roi_percentage: number
+    total_trades: number
+    markets_traded: number
+    active_positions: number
+  }
+  credits: {
+    current: number
+    stored: number
+    max: number
+  }
+  volume: {
+    total_volume_traded: number
+    total_profit_loss: number
+    unrealized_pnl: number
+  }
+}
+
 export const usersApi = {
   getMe: async () => {
     const response = await api.get<User>('/auth/users/me/')
@@ -110,6 +154,40 @@ export const usersApi = {
   
   getCredits: async () => {
     const response = await api.get<{ credits: number; status: CreditStatus }>('/auth/users/credits/')
+    return response.data
+  },
+}
+
+export const leaderboardApi = {
+  getAllTime: async () => {
+    const response = await api.get<{ results: LeaderboardUser[]; type: string }>('/auth/leaderboard/all-time/')
+    return response.data
+  },
+  
+  getWeekly: async () => {
+    const response = await api.get<{ results: LeaderboardUser[]; type: string }>('/auth/leaderboard/weekly/')
+    return response.data
+  },
+  
+  getMonthly: async () => {
+    const response = await api.get<{ results: LeaderboardUser[]; type: string }>('/auth/leaderboard/monthly/')
+    return response.data
+  },
+  
+  getAroundMe: async () => {
+    const response = await api.get<{ results: LeaderboardUser[]; user_rank: number; user_points: number }>('/auth/leaderboard/around-me/')
+    return response.data
+  },
+}
+
+export const statsApi = {
+  getMyStats: async () => {
+    const response = await api.get<UserStats>('/auth/stats/me/')
+    return response.data
+  },
+  
+  getUserStats: async (userId: number) => {
+    const response = await api.get<UserStats>(`/auth/stats/${userId}/stats/`)
     return response.data
   },
 }

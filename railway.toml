@@ -6,3 +6,14 @@ startCommand = "cd backend && python manage.py migrate && gunicorn config.wsgi:a
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 10
 
+
+
+
+
+
+
+
+
+
+
+
