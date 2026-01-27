@@ -68,6 +68,16 @@ export interface User {
   date_joined: string
 }
 
+export interface AuthResponse {
+  id: number
+  username: string
+  email: string
+  credits: number
+  current_credits: number
+  credit_status: CreditStatus
+  date_joined: string
+}
+
 export const marketsApi = {
   getAll: async (params?: { status?: string; category?: string; search?: string }) => {
     const response = await api.get<{ results: Market[] }>('/markets/', { params })
@@ -155,6 +165,54 @@ export const usersApi = {
   getCredits: async () => {
     const response = await api.get<{ credits: number; status: CreditStatus }>('/auth/users/credits/')
     return response.data
+  },
+}
+
+export const authApi = {
+  getCsrf: async () => {
+    const response = await api.get<{ csrfToken: string }>('/auth/csrf/')
+    return response.data.csrfToken
+  },
+
+  signup: async (data: { username: string; email: string; password: string }) => {
+    const csrfToken = await authApi.getCsrf()
+    const response = await api.post<AuthResponse>(
+      '/auth/signup/',
+      data,
+      {
+        headers: {
+          'X-CSRFToken': csrfToken,
+        },
+      }
+    )
+    return response.data
+  },
+
+  login: async (data: { username?: string; email?: string; password: string }) => {
+    const csrfToken = await authApi.getCsrf()
+    const response = await api.post<AuthResponse>(
+      '/auth/login/',
+      data,
+      {
+        headers: {
+          'X-CSRFToken': csrfToken,
+        },
+      }
+    )
+    return response.data
+  },
+
+  logout: async () => {
+    const csrfToken = await authApi.getCsrf()
+    await api.post(
+      '/auth/logout/',
+      {},
+      {
+        headers: {
+          'X-CSRFToken': csrfToken,
+        },
+      }
+    )
   },
 }
 

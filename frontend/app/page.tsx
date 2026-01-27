@@ -30,9 +30,9 @@ export default function Home() {
               </nav>
             </div>
             <div className="flex items-center space-x-4">
-              <button className="btn-primary text-sm">
-                Connect Wallet
-              </button>
+              <Link href="/login" className="btn-primary text-sm">
+                Login / Sign up
+              </Link>
             </div>
           </div>
         </div>

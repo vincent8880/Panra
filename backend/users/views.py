@@ -1,12 +1,15 @@
 """
-User views for leaderboard and profile stats.
+User views for authentication, leaderboard, and profile stats.
 """
 from rest_framework import viewsets, status
+from rest_framework.views import APIView
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.db.models import Q, F, Count, Sum
 from django.utils import timezone
+from django.contrib.auth import authenticate, login, logout
+from django.middleware.csrf import get_token
 from datetime import timedelta
 from decimal import Decimal
 from .models import User, UserProfile
@@ -41,6 +44,104 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
             'current_credits': float(user.get_current_credits()),
             'credit_status': UserSerializer().get_credit_status(user)
         })
+
+
+class CsrfView(APIView):
+    """
+    Return CSRF token for the frontend to use with session-based auth.
+    """
+    permission_classes = [AllowAny]
+
+    def get(self, request, *args, **kwargs):
+        token = get_token(request)
+        return Response({'csrfToken': token})
+
+
+class LoginView(APIView):
+    """
+    Email/username + password login using Django sessions.
+    """
+    permission_classes = [AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        username = request.data.get('username') or request.data.get('email')
+        password = request.data.get('password')
+
+        if not username or not password:
+            return Response(
+                {'detail': 'Username/email and password are required.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        user = authenticate(request, username=username, password=password)
+        if user is None:
+            return Response(
+                {'detail': 'Invalid credentials.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not user.is_active:
+            return Response(
+                {'detail': 'This account is inactive.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        login(request, user)
+        serializer = UserSerializer(user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class LogoutView(APIView):
+    """
+    Log the current user out of their session.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        logout(request)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class SignupView(APIView):
+    """
+    Simple username/email/password signup.
+    """
+    permission_classes = [AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        username = request.data.get('username')
+        email = request.data.get('email')
+        password = request.data.get('password')
+
+        if not username or not email or not password:
+            return Response(
+                {'detail': 'Username, email, and password are required.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if User.objects.filter(username=username).exists():
+            return Response(
+                {'detail': 'Username already taken.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if User.objects.filter(email=email).exists():
+            return Response(
+                {'detail': 'Email already in use.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        user = User.objects.create_user(
+            username=username,
+            email=email,
+            password=password,
+        )
+
+        # Optionally log them in immediately
+        login(request, user)
+
+        serializer = UserSerializer(user)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 class LeaderboardViewSet(viewsets.ViewSet):

@@ -1,17 +1,19 @@
-'use client'
+"use client"
 
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { marketsApi, Market } from 'lib/api'
 import { formatDistanceToNow } from 'date-fns'
-import { TradingInterface } from 'components/TradingInterface'
+import { TradeModal } from 'components/TradeModal'
 import PanraLogo from 'components/PanraIcon'
 
 export default function MarketDetailPage() {
   const params = useParams()
   const [market, setMarket] = useState<Market | null>(null)
   const [loading, setLoading] = useState(true)
+  const [tradeOpen, setTradeOpen] = useState(false)
+  const [tradeSide, setTradeSide] = useState<'yes' | 'no'>('yes')
 
   useEffect(() => {
     const fetchMarket = async () => {
@@ -66,9 +68,9 @@ export default function MarketDetailPage() {
               </nav>
             </div>
             <div className="flex items-center space-x-4">
-              <button className="btn-primary text-sm">
-                Connect Wallet
-              </button>
+              <Link href="/login" className="btn-primary text-sm">
+                Login / Sign up
+              </Link>
             </div>
           </div>
         </div>
@@ -117,50 +119,54 @@ export default function MarketDetailPage() {
 
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Trading Interface - Left Column */}
-          <div className="lg:col-span-2">
-            <TradingInterface market={market} />
+          {/* Left: current prices & trade buttons */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Price & trade actions - Polymarket style */}
+            <div className="bg-pm-bg-card rounded-lg border border-pm-border p-6">
+              <h2 className="text-lg font-semibold text-pm-text-primary mb-4">
+                Trade this market
+              </h2>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => {
+                    setTradeSide('yes')
+                    setTradeOpen(true)
+                  }}
+                  className="flex flex-col items-start justify-between p-4 rounded-xl border border-pm-border bg-pm-bg-secondary hover:bg-pm-bg-card transition-colors"
+                >
+                  <span className="text-xs text-pm-text-secondary font-medium mb-1">
+                    YES
+                  </span>
+                  <span className="text-2xl font-bold text-pm-green mb-1">
+                    {(parseFloat(market.yes_price) * 100).toFixed(1)}%
+                  </span>
+                  <span className="text-[11px] text-pm-text-secondary">
+                    Tap to buy YES shares
+                  </span>
+                </button>
+                <button
+                  onClick={() => {
+                    setTradeSide('no')
+                    setTradeOpen(true)
+                  }}
+                  className="flex flex-col items-start justify-between p-4 rounded-xl border border-pm-border bg-pm-bg-secondary hover:bg-pm-bg-card transition-colors"
+                >
+                  <span className="text-xs text-pm-text-secondary font-medium mb-1">
+                    NO
+                  </span>
+                  <span className="text-2xl font-bold text-pm-red mb-1">
+                    {(parseFloat(market.no_price) * 100).toFixed(1)}%
+                  </span>
+                  <span className="text-[11px] text-pm-text-secondary">
+                    Tap to buy NO shares
+                  </span>
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* Market Info - Right Column */}
           <div className="space-y-6">
-            {/* Price Display - Polymarket style */}
-            <div className="bg-pm-bg-card rounded-lg border border-pm-border p-6">
-              <h2 className="text-lg font-semibold text-pm-text-primary mb-4">
-                Current Prices
-              </h2>
-              <div className="space-y-4">
-                <div>
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm text-pm-text-secondary font-medium">YES</span>
-                    <span className="text-2xl font-bold text-pm-green">
-                      {(parseFloat(market.yes_price) * 100).toFixed(2)}%
-                    </span>
-                  </div>
-                  <div className="w-full bg-pm-bg-secondary rounded-full h-2">
-                    <div
-                      className="bg-pm-green h-2 rounded-full"
-                      style={{ width: `${parseFloat(market.yes_price) * 100}%` }}
-                    ></div>
-                  </div>
-                </div>
-                <div>
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm text-pm-text-secondary font-medium">NO</span>
-                    <span className="text-2xl font-bold text-pm-red">
-                      {(parseFloat(market.no_price) * 100).toFixed(2)}%
-                    </span>
-                  </div>
-                  <div className="w-full bg-pm-bg-secondary rounded-full h-2">
-                    <div
-                      className="bg-pm-red h-2 rounded-full"
-                      style={{ width: `${parseFloat(market.no_price) * 100}%` }}
-                    ></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
             {/* Market Details */}
             <div className="bg-pm-bg-card rounded-lg border border-pm-border p-6">
               <h2 className="text-lg font-semibold text-pm-text-primary mb-4">
@@ -196,6 +202,14 @@ export default function MarketDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Trading modal (bottom sheet on mobile) */}
+      <TradeModal
+        market={market}
+        isOpen={tradeOpen}
+        initialSide={tradeSide}
+        onClose={() => setTradeOpen(false)}
+      />
     </main>
   )
 }
