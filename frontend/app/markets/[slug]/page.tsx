@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { marketsApi, Market } from 'lib/api'
 import { formatDistanceToNow } from 'date-fns'
 import { TradeModal } from 'components/TradeModal'
-import PanraLogo from 'components/PanraIcon'
+import { TopNav } from 'components/TopNav'
 
 export default function MarketDetailPage() {
   const params = useParams()
@@ -50,31 +50,7 @@ export default function MarketDetailPage() {
 
   return (
     <main className="min-h-screen bg-pm-bg-primary">
-      {/* Header - Polymarket style */}
-      <header className="bg-pm-bg-primary border-b border-pm-border sticky top-0 z-50 backdrop-blur-sm bg-pm-bg-primary/80">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-8">
-              <Link href="/" className="flex items-center">
-                <PanraLogo size={28} />
-              </Link>
-              <nav className="hidden md:flex items-center space-x-6">
-                <Link href="/" className="nav-link">
-                  Markets
-                </Link>
-                <Link href="/leaderboard" className="nav-link">
-                  Leaderboard
-                </Link>
-              </nav>
-            </div>
-            <div className="flex items-center space-x-4">
-              <Link href="/login" className="btn-primary text-sm">
-                Login / Sign up
-              </Link>
-            </div>
-          </div>
-        </div>
-      </header>
+      <TopNav />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Back Button */}
@@ -113,7 +89,7 @@ export default function MarketDetailPage() {
             <span>•</span>
             <span>Ends {formatDistanceToNow(new Date(market.end_date), { addSuffix: true })}</span>
             <span>•</span>
-            <span>Volume: KES {parseFloat(market.total_volume).toLocaleString()}</span>
+            <span>Volume: {parseFloat(market.total_volume).toLocaleString()} pts</span>
           </div>
         </div>
 
@@ -141,7 +117,7 @@ export default function MarketDetailPage() {
                     {(parseFloat(market.yes_price) * 100).toFixed(1)}%
                   </span>
                   <span className="text-[11px] text-pm-text-secondary">
-                    Tap to buy YES shares
+                    Tap to stake on YES
                   </span>
                 </button>
                 <button
@@ -158,15 +134,57 @@ export default function MarketDetailPage() {
                     {(parseFloat(market.no_price) * 100).toFixed(1)}%
                   </span>
                   <span className="text-[11px] text-pm-text-secondary">
-                    Tap to buy NO shares
+                    Tap to stake on NO
                   </span>
                 </button>
               </div>
             </div>
           </div>
 
-          {/* Market Info - Right Column */}
+          {/* Market Info + desktop trade ticket - Right Column */}
           <div className="space-y-6">
+            {/* Desktop trade ticket */}
+            <div className="hidden lg:block bg-pm-bg-card rounded-lg border border-pm-border p-6">
+              <h2 className="text-lg font-semibold text-pm-text-primary mb-3">
+                Trade ticket
+              </h2>
+              <p className="text-xs text-pm-text-secondary mb-3">
+                Stake points on YES or NO. No real money, just points and leaderboard rank.
+              </p>
+              <div className="grid grid-cols-2 gap-2 mb-4">
+                <button
+                  onClick={() => {
+                    setTradeSide('yes')
+                    setTradeOpen(true)
+                  }}
+                  className="py-2 px-3 rounded-lg text-xs font-semibold bg-pm-bg-secondary hover:bg-pm-bg-card border border-pm-border text-left"
+                >
+                  <div className="text-[11px] text-pm-text-secondary mb-0.5">YES</div>
+                  <div className="text-base font-bold text-pm-green">
+                    {(parseFloat(market.yes_price) * 100).toFixed(1)}% implied
+                  </div>
+                </button>
+                <button
+                  onClick={() => {
+                    setTradeSide('no')
+                    setTradeOpen(true)
+                  }}
+                  className="py-2 px-3 rounded-lg text-xs font-semibold bg-pm-bg-secondary hover:bg-pm-bg-card border border-pm-border text-left"
+                >
+                  <div className="text-[11px] text-pm-text-secondary mb-0.5">NO</div>
+                  <div className="text-base font-bold text-pm-red">
+                    {(parseFloat(market.no_price) * 100).toFixed(1)}% implied
+                  </div>
+                </button>
+              </div>
+              <button
+                onClick={() => setTradeOpen(true)}
+                className="w-full btn-primary py-2 text-sm"
+              >
+                Open trade
+              </button>
+            </div>
+
             {/* Market Details */}
             <div className="bg-pm-bg-card rounded-lg border border-pm-border p-6">
               <h2 className="text-lg font-semibold text-pm-text-primary mb-4">
@@ -188,13 +206,13 @@ export default function MarketDetailPage() {
                 <div>
                   <dt className="text-sm text-pm-text-secondary">Total Volume</dt>
                   <dd className="text-sm font-medium text-pm-text-primary">
-                    KES {parseFloat(market.total_volume).toLocaleString()}
+                    {parseFloat(market.total_volume).toLocaleString()} pts
                   </dd>
                 </div>
                 <div>
                   <dt className="text-sm text-pm-text-secondary">Total Liquidity</dt>
                   <dd className="text-sm font-medium text-pm-text-primary">
-                    KES {parseFloat(market.total_liquidity).toLocaleString()}
+                    {parseFloat(market.total_liquidity).toLocaleString()} pts
                   </dd>
                 </div>
               </dl>

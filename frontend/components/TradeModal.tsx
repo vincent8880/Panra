@@ -206,9 +206,9 @@ export function TradeModal({ market, isOpen, initialSide, onClose }: TradeModalP
           {orderType === 'limit' && (
             <div>
               <div className="flex justify-between items-center mb-1">
-                <label className="text-[11px] text-pm-text-secondary">Price (KES)</label>
+                <label className="text-[11px] text-pm-text-secondary">Price (0–1)</label>
                 <span className="text-[11px] text-pm-text-secondary">
-                  Current {(currentPrice * 100).toFixed(1)}%
+                  Current {(currentPrice * 100).toFixed(1)}% implied
                 </span>
               </div>
               <input
@@ -224,10 +224,10 @@ export function TradeModal({ market, isOpen, initialSide, onClose }: TradeModalP
             </div>
           )}
 
-          {/* Quantity + quick buttons */}
+          {/* Stake (points) + quick buttons */}
           <div>
             <label className="block text-[11px] text-pm-text-secondary mb-1">
-              Quantity (shares)
+              Stake (points)
             </label>
             <input
               type="number"
@@ -258,12 +258,13 @@ export function TradeModal({ market, isOpen, initialSide, onClose }: TradeModalP
           {/* Cost summary */}
           {quantity && (orderType === 'market' || price) && (
             <div className="flex justify-between text-xs bg-pm-bg-secondary border border-pm-border rounded-md px-2 py-1.5">
-              <span className="text-pm-text-secondary">Estimated cost</span>
+              <span className="text-pm-text-secondary">Estimated stake</span>
               <span className="font-semibold text-pm-text-primary">
-                KES {(
+                {(
                   (orderType === 'market' ? currentPrice : parseFloat(price || '0')) *
                   parseFloat(quantity || '0')
-                ).toFixed(2)}
+                ).toFixed(2)}{' '}
+                pts
               </span>
             </div>
           )}
@@ -285,5 +286,7 @@ export function TradeModal({ market, isOpen, initialSide, onClose }: TradeModalP
     </div>
   )
 }
+
+
 
 
