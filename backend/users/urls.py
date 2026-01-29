@@ -8,6 +8,7 @@ from .views import (
     LoginView,
     LogoutView,
     SignupView,
+    GoogleOAuthInitView,
 )
 
 router = DefaultRouter()
@@ -20,6 +21,7 @@ urlpatterns = [
     path('login/', LoginView.as_view(), name='auth-login'),
     path('logout/', LogoutView.as_view(), name='auth-logout'),
     path('signup/', SignupView.as_view(), name='auth-signup'),
+    path('google/init/', GoogleOAuthInitView.as_view(), name='auth-google-init'),
 ] + router.urls
 
 

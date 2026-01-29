@@ -15,8 +15,6 @@ interface TradeModalProps {
 export function TradeModal({ market, isOpen, initialSide, onClose }: TradeModalProps) {
   const router = useRouter()
   const [side, setSide] = useState<'yes' | 'no'>(initialSide)
-  const [orderType, setOrderType] = useState<'limit' | 'market'>('limit')
-  const [price, setPrice] = useState('')
   const [quantity, setQuantity] = useState('')
   const [loading, setLoading] = useState(false)
   const [authRequired, setAuthRequired] = useState(false)
@@ -29,8 +27,6 @@ export function TradeModal({ market, isOpen, initialSide, onClose }: TradeModalP
     : parseFloat(market.no_price)
 
   const resetState = () => {
-    setOrderType('limit')
-    setPrice('')
     setQuantity('')
     setAuthRequired(false)
     setError(null)
@@ -46,12 +42,14 @@ export function TradeModal({ market, isOpen, initialSide, onClose }: TradeModalP
     e.preventDefault()
     setError(null)
 
-    if (!price && orderType === 'limit') {
-      setError('Please enter a price.')
+    if (!quantity) {
+      setError('Please enter how many points you want to stake.')
       return
     }
-    if (!quantity) {
-      setError('Please enter a quantity.')
+
+    const stakeAmount = parseFloat(quantity)
+    if (isNaN(stakeAmount) || stakeAmount < 1) {
+      setError('Minimum stake is 1 point.')
       return
     }
 
@@ -73,9 +71,9 @@ export function TradeModal({ market, isOpen, initialSide, onClose }: TradeModalP
       await ordersApi.create({
         market: market.id,
         side,
-        order_type: orderType,
-        price: orderType === 'market' ? currentPrice.toFixed(4) : price,
-        quantity,
+        order_type: 'market', // Always use market orders for simplicity
+        price: currentPrice.toFixed(4),
+        quantity: stakeAmount.toFixed(2),
       })
       resetState()
       onClose()
@@ -120,8 +118,8 @@ export function TradeModal({ market, isOpen, initialSide, onClose }: TradeModalP
             onClick={() => setSide('yes')}
             className={`py-2 px-3 rounded-lg text-xs font-semibold transition-all ${
               side === 'yes'
-                ? 'bg-pm-green text-white shadow-lg shadow-pm-green/20'
-                : 'bg-pm-bg-secondary text-pm-text-secondary hover:bg-pm-bg-card border border-pm-border'
+                ? 'bg-pm-green text-white shadow-lg shadow-pm-green/20 border border-pm-green'
+                : 'bg-pm-bg-secondary text-pm-green/60 border border-pm-border hover:border-pm-green/50 hover:bg-pm-green/5 hover:text-pm-green hover:shadow-md hover:shadow-pm-green/10'
             }`}
           >
             YES {(parseFloat(market.yes_price) * 100).toFixed(1)}%
@@ -131,8 +129,8 @@ export function TradeModal({ market, isOpen, initialSide, onClose }: TradeModalP
             onClick={() => setSide('no')}
             className={`py-2 px-3 rounded-lg text-xs font-semibold transition-all ${
               side === 'no'
-                ? 'bg-pm-red text-white shadow-lg shadow-pm-red/20'
-                : 'bg-pm-bg-secondary text-pm-text-secondary hover:bg-pm-bg-card border border-pm-border'
+                ? 'bg-pm-red text-white shadow-lg shadow-pm-red/20 border border-pm-red'
+                : 'bg-pm-bg-secondary text-pm-red/60 border border-pm-border hover:border-pm-red/50 hover:bg-pm-red/5 hover:text-pm-red hover:shadow-md hover:shadow-pm-red/10'
             }`}
           >
             NO {(parseFloat(market.no_price) * 100).toFixed(1)}%
@@ -172,114 +170,70 @@ export function TradeModal({ market, isOpen, initialSide, onClose }: TradeModalP
         )}
 
         {/* Order form */}
-        <form onSubmit={handleSubmit} className="space-y-3">
-          {/* Order type */}
-          <div>
-            <div className="text-[11px] text-pm-text-secondary mb-1">Order type</div>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => setOrderType('limit')}
-                className={`py-1.5 rounded-md text-xs font-medium ${
-                  orderType === 'limit'
-                    ? 'bg-pm-blue text-white'
-                    : 'bg-pm-bg-secondary text-pm-text-secondary border border-pm-border'
-                }`}
-              >
-                Limit
-              </button>
-              <button
-                type="button"
-                onClick={() => setOrderType('market')}
-                className={`py-1.5 rounded-md text-xs font-medium ${
-                  orderType === 'market'
-                    ? 'bg-pm-blue text-white'
-                    : 'bg-pm-bg-secondary text-pm-text-secondary border border-pm-border'
-                }`}
-              >
-                Market
-              </button>
-            </div>
-          </div>
-
-          {/* Price (for limit) */}
-          {orderType === 'limit' && (
-            <div>
-              <div className="flex justify-between items-center mb-1">
-                <label className="text-[11px] text-pm-text-secondary">Price (0–1)</label>
-                <span className="text-[11px] text-pm-text-secondary">
-                  Current {(currentPrice * 100).toFixed(1)}% implied
-                </span>
-              </div>
-              <input
-                type="number"
-                step="0.0001"
-                min="0"
-                max="1"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                placeholder={currentPrice.toFixed(4)}
-                className="pm-input w-full text-xs"
-              />
-            </div>
-          )}
-
+        <form onSubmit={handleSubmit} className="space-y-4">
           {/* Stake (points) + quick buttons */}
           <div>
-            <label className="block text-[11px] text-pm-text-secondary mb-1">
-              Stake (points)
+            <label className="block text-sm font-medium text-pm-text-primary mb-2">
+              How many points do you want to stake?
             </label>
             <input
               type="number"
-              step="0.01"
-              min="0.01"
+              step="1"
+              min="1"
               value={quantity}
               onChange={(e) => setQuantity(e.target.value)}
-              placeholder="0.00"
-              className="pm-input w-full text-xs mb-1.5"
+              placeholder="Enter amount"
+              className="pm-input w-full text-base py-3 mb-3"
             />
-            <div className="flex flex-wrap gap-1.5">
-              {[10, 100, 1000].map((inc) => (
+            <div className="flex flex-wrap gap-2">
+              {[10, 50, 100, 500].map((amount) => (
                 <button
-                  key={inc}
+                  key={amount}
                   type="button"
-                  onClick={() => {
-                    const current = parseFloat(quantity) || 0
-                    setQuantity((current + inc).toFixed(2))
-                  }}
-                  className="px-2 py-1 text-[11px] font-medium bg-pm-bg-secondary hover:bg-pm-bg-card text-pm-text-secondary hover:text-pm-text-primary border border-pm-border rounded"
+                  onClick={() => setQuantity(amount.toString())}
+                  className="px-4 py-2 text-sm font-medium bg-pm-bg-secondary hover:bg-pm-bg-card text-pm-text-primary border border-pm-border rounded-lg transition-colors"
                 >
-                  +{inc}
+                  {amount} pts
                 </button>
               ))}
             </div>
           </div>
 
           {/* Cost summary */}
-          {quantity && (orderType === 'market' || price) && (
-            <div className="flex justify-between text-xs bg-pm-bg-secondary border border-pm-border rounded-md px-2 py-1.5">
-              <span className="text-pm-text-secondary">Estimated stake</span>
-              <span className="font-semibold text-pm-text-primary">
-                {(
-                  (orderType === 'market' ? currentPrice : parseFloat(price || '0')) *
-                  parseFloat(quantity || '0')
-                ).toFixed(2)}{' '}
-                pts
-              </span>
+          {quantity && parseFloat(quantity) >= 1 && (
+            <div className="bg-pm-bg-secondary border border-pm-border rounded-lg p-3 space-y-1">
+              <div className="flex justify-between text-sm">
+                <span className="text-pm-text-secondary">Price per share</span>
+                <span className="font-medium text-pm-text-primary">
+                  {(currentPrice * 100).toFixed(1)}% implied
+                </span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-pm-text-secondary">Total cost</span>
+                <span className="font-semibold text-pm-text-primary">
+                  {(currentPrice * parseFloat(quantity || '0')).toFixed(2)} pts
+                </span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-pm-text-secondary">Max payout (if correct)</span>
+                <span className="font-semibold text-pm-text-primary">
+                  {parseFloat(quantity || '0').toFixed(2)} pts
+                </span>
+              </div>
             </div>
           )}
 
           {/* Submit */}
           <button
             type="submit"
-            disabled={loading}
-            className={`w-full py-2.5 rounded-lg text-sm font-semibold mt-1 ${
+            disabled={loading || !quantity || parseFloat(quantity) < 1}
+            className={`w-full py-3 rounded-lg text-base font-semibold mt-2 ${
               side === 'yes'
                 ? 'bg-pm-green hover:bg-pm-green-dark text-white'
                 : 'bg-pm-red hover:bg-pm-red-dark text-white'
-            } disabled:opacity-50 disabled:cursor-not-allowed`}
+            } disabled:opacity-50 disabled:cursor-not-allowed transition-colors`}
           >
-            {loading ? 'Placing order…' : `Buy ${side.toUpperCase()}`}
+            {loading ? 'Placing order…' : `Stake ${side.toUpperCase()}`}
           </button>
         </form>
       </div>

@@ -10,6 +10,11 @@ from django.db.models import Q, F, Count, Sum
 from django.utils import timezone
 from django.contrib.auth import authenticate, login, logout
 from django.middleware.csrf import get_token
+from django.shortcuts import redirect
+from django.conf import settings
+from allauth.socialaccount.providers.google.views import oauth2_login
+from allauth.socialaccount.providers.oauth2.client import OAuth2Client
+from allauth.socialaccount.models import SocialAccount
 from datetime import timedelta
 from decimal import Decimal
 from .models import User, UserProfile
@@ -142,6 +147,24 @@ class SignupView(APIView):
 
         serializer = UserSerializer(user)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+class GoogleOAuthInitView(APIView):
+    """
+    Return the Google OAuth URL for the frontend to redirect to.
+    """
+    permission_classes = [AllowAny]
+
+    def get(self, request, *args, **kwargs):
+        from django.urls import reverse
+        
+        # Get the Google OAuth login URL from allauth
+        google_login_url = reverse('google_login')
+        full_url = request.build_absolute_uri(google_login_url)
+        
+        return Response({
+            'auth_url': full_url
+        })
 
 
 class LeaderboardViewSet(viewsets.ViewSet):

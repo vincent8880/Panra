@@ -108,12 +108,12 @@ export default function MarketDetailPage() {
                     setTradeSide('yes')
                     setTradeOpen(true)
                   }}
-                  className="flex flex-col items-start justify-between p-4 rounded-xl border border-pm-border bg-pm-bg-secondary hover:bg-pm-bg-card transition-colors"
+                  className="group flex flex-col items-start justify-between p-4 rounded-xl border border-pm-border bg-pm-bg-secondary transition-all cursor-pointer hover:border-pm-green/50 hover:bg-pm-green/5 hover:shadow-lg hover:shadow-pm-green/10"
                 >
-                  <span className="text-xs text-pm-text-secondary font-medium mb-1">
+                  <span className="text-xs text-pm-text-secondary font-medium mb-1 group-hover:text-pm-green transition-colors">
                     YES
                   </span>
-                  <span className="text-2xl font-bold text-pm-green mb-1">
+                  <span className="text-2xl font-bold text-pm-green/60 group-hover:text-pm-green transition-colors">
                     {(parseFloat(market.yes_price) * 100).toFixed(1)}%
                   </span>
                   <span className="text-[11px] text-pm-text-secondary">
@@ -125,12 +125,12 @@ export default function MarketDetailPage() {
                     setTradeSide('no')
                     setTradeOpen(true)
                   }}
-                  className="flex flex-col items-start justify-between p-4 rounded-xl border border-pm-border bg-pm-bg-secondary hover:bg-pm-bg-card transition-colors"
+                  className="group flex flex-col items-start justify-between p-4 rounded-xl border border-pm-border bg-pm-bg-secondary transition-all cursor-pointer hover:border-pm-red/50 hover:bg-pm-red/5 hover:shadow-lg hover:shadow-pm-red/10"
                 >
-                  <span className="text-xs text-pm-text-secondary font-medium mb-1">
+                  <span className="text-xs text-pm-text-secondary font-medium mb-1 group-hover:text-pm-red transition-colors">
                     NO
                   </span>
-                  <span className="text-2xl font-bold text-pm-red mb-1">
+                  <span className="text-2xl font-bold text-pm-red/60 group-hover:text-pm-red transition-colors">
                     {(parseFloat(market.no_price) * 100).toFixed(1)}%
                   </span>
                   <span className="text-[11px] text-pm-text-secondary">
@@ -157,10 +157,10 @@ export default function MarketDetailPage() {
                     setTradeSide('yes')
                     setTradeOpen(true)
                   }}
-                  className="py-2 px-3 rounded-lg text-xs font-semibold bg-pm-bg-secondary hover:bg-pm-bg-card border border-pm-border text-left"
+                  className="group py-2 px-3 rounded-lg text-xs font-semibold bg-pm-bg-secondary border border-pm-border text-left transition-all cursor-pointer hover:border-pm-green/50 hover:bg-pm-green/5 hover:shadow-md hover:shadow-pm-green/10"
                 >
-                  <div className="text-[11px] text-pm-text-secondary mb-0.5">YES</div>
-                  <div className="text-base font-bold text-pm-green">
+                  <div className="text-[11px] text-pm-text-secondary mb-0.5 group-hover:text-pm-green transition-colors">YES</div>
+                  <div className="text-base font-bold text-pm-green/60 group-hover:text-pm-green transition-colors">
                     {(parseFloat(market.yes_price) * 100).toFixed(1)}% implied
                   </div>
                 </button>
@@ -169,10 +169,10 @@ export default function MarketDetailPage() {
                     setTradeSide('no')
                     setTradeOpen(true)
                   }}
-                  className="py-2 px-3 rounded-lg text-xs font-semibold bg-pm-bg-secondary hover:bg-pm-bg-card border border-pm-border text-left"
+                  className="group py-2 px-3 rounded-lg text-xs font-semibold bg-pm-bg-secondary border border-pm-border text-left transition-all cursor-pointer hover:border-pm-red/50 hover:bg-pm-red/5 hover:shadow-md hover:shadow-pm-red/10"
                 >
-                  <div className="text-[11px] text-pm-text-secondary mb-0.5">NO</div>
-                  <div className="text-base font-bold text-pm-red">
+                  <div className="text-[11px] text-pm-text-secondary mb-0.5 group-hover:text-pm-red transition-colors">NO</div>
+                  <div className="text-base font-bold text-pm-red/60 group-hover:text-pm-red transition-colors">
                     {(parseFloat(market.no_price) * 100).toFixed(1)}% implied
                   </div>
                 </button>

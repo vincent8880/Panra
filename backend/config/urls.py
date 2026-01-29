@@ -11,6 +11,7 @@ urlpatterns = [
     path('api/auth/', include('users.urls')),
     path('api/markets/', include('markets.urls')),
     path('api/trading/', include('trading.urls')),
+    path('accounts/', include('allauth.urls')),  # Allauth URLs for OAuth
 ]
 
 if settings.DEBUG:

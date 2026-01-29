@@ -214,6 +214,11 @@ export const authApi = {
       }
     )
   },
+
+  getGoogleAuthUrl: async () => {
+    const response = await api.get<{ auth_url: string }>('/auth/google/init/')
+    return response.data.auth_url
+  },
 }
 
 export const leaderboardApi = {
