@@ -31,6 +31,15 @@ class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
         if request.user.is_authenticated:
             sociallogin.connect(request, request.user)
     
+    def authentication_error(self, request, provider_id, error=None, exception=None, extra_context=None):
+        """Handle authentication errors gracefully."""
+        # Log the error but don't raise - let the error template handle it
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning(f"Social authentication error for {provider_id}: {error}")
+        # Return None to let allauth handle the error display
+        return None
+    
     def save_user(self, request, sociallogin, form=None):
         """Save user after social login."""
         user = super().save_user(request, sociallogin, form)
