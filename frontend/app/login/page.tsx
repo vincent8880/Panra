@@ -19,10 +19,11 @@ export default function LoginPage() {
   useEffect(() => {
     const googleAuth = searchParams?.get('google_auth')
     if (googleAuth === 'success') {
-      // User successfully logged in via Google, refresh and redirect
-      router.push('/')
+      // User successfully logged in via Google
+      // Refresh the page to get updated user state, then redirect
+      window.location.href = '/'
     } else if (googleAuth === 'error') {
-      setError('Google authentication failed. Please try again.')
+      setError('Google authentication failed. Please try again or use email/password login.')
     }
   }, [searchParams, router])
 

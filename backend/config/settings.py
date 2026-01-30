@@ -153,7 +153,8 @@ SITE_ID = 1
 
 # Authentication backends
 AUTHENTICATION_BACKENDS = [
-    'django.contrib.auth.backends.ModelBackend',  # Default Django auth
+    'users.backends.EmailOrUsernameBackend',  # Custom: supports email/username login
+    'django.contrib.auth.backends.ModelBackend',  # Default Django auth (fallback)
     'allauth.account.auth_backends.AuthenticationBackend',  # Allauth
 ]
 
@@ -226,8 +227,28 @@ if os.getenv('RAILWAY_ENVIRONMENT') or os.getenv('RAILWAY_PROJECT_ID'):
     if railway_domain not in CSRF_TRUSTED_ORIGINS:
         CSRF_TRUSTED_ORIGINS.append(railway_domain)
     
+    # Add frontend domain to CSRF trusted origins
+    frontend_url = get_frontend_url()
+    if frontend_url and frontend_url not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(frontend_url)
+    
+    # Add frontend to CORS if not already there
+    if frontend_url and frontend_url not in CORS_ALLOWED_ORIGINS:
+        CORS_ALLOWED_ORIGINS.append(frontend_url)
+    
     # Force HTTPS detection behind Railway proxy (for OAuth redirects)
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# Session and cookie settings
+SESSION_COOKIE_AGE = 86400 * 7  # 7 days
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Lax'  # Allow cookies in cross-site requests (needed for OAuth)
+SESSION_SAVE_EVERY_REQUEST = True  # Refresh session on each request
+
+# CSRF cookie settings
+CSRF_COOKIE_HTTPONLY = False  # Allow JavaScript to read CSRF token
+CSRF_COOKIE_SAMESITE = 'Lax'
+CSRF_USE_SESSIONS = False  # Use cookie-based CSRF tokens
 
 # Security settings for production
 if not DEBUG:

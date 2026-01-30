@@ -78,20 +78,26 @@ class LoginView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        # Try authentication with custom backend (supports email/username)
         user = authenticate(request, username=username, password=password)
+        
         if user is None:
+            # More specific error message
             return Response(
-                {'detail': 'Invalid credentials.'},
-                status=status.HTTP_400_BAD_REQUEST,
+                {'detail': 'Invalid username/email or password. Please check your credentials and try again.'},
+                status=status.HTTP_401_UNAUTHORIZED,
             )
 
         if not user.is_active:
             return Response(
-                {'detail': 'This account is inactive.'},
-                status=status.HTTP_400_BAD_REQUEST,
+                {'detail': 'This account has been deactivated. Please contact support.'},
+                status=status.HTTP_403_FORBIDDEN,
             )
 
+        # Log the user in (creates session)
         login(request, user)
+        
+        # Serialize user data
         serializer = UserSerializer(user)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
