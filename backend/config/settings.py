@@ -9,6 +9,16 @@ from decouple import config
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Helper function to get frontend URL for settings (avoid circular import)
+def _get_frontend_url_for_settings():
+    """Helper to get frontend URL for settings."""
+    frontend = config('FRONTEND_URL', default=None)
+    if frontend and frontend != 'http://localhost:3000':
+        return frontend
+    if os.getenv('RAILWAY_ENVIRONMENT') or os.getenv('RAILWAY_PROJECT_ID'):
+        return 'https://panra-ke.up.railway.app'
+    return frontend or 'http://localhost:3000'
+
 
 # Quick-start development settings - unsuitable for production
 SECRET_KEY = config('SECRET_KEY', default='django-insecure-change-this-in-production')
