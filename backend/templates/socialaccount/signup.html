@@ -127,6 +127,31 @@
             text-align: center;
         }
         
+        .login-link {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #2a2a2a;
+            text-align: center;
+        }
+        
+        .login-link p {
+            font-size: 12px;
+            color: #a0a0a0;
+            margin-bottom: 0;
+        }
+        
+        .login-link a {
+            color: #3b82f6;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+        
+        .login-link a:hover {
+            color: #2563eb;
+            text-decoration: underline;
+        }
+        
         @media (max-width: 480px) {
             .container {
                 padding: 24px;
@@ -199,6 +224,13 @@
         </form>
         
         <p class="info-text">By continuing, you agree to Panra's Terms of Service</p>
+        
+        <div class="login-link">
+            <p>
+                Already have an account? 
+                <a href="{{ FRONTEND_URL }}/login">Log in</a>
+            </p>
+        </div>
     </div>
 </body>
 </html>
