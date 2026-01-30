@@ -390,3 +390,8 @@ def calculate_points(user):
 
 **Ready to start implementing? Let me know which feature you want to tackle first!**
 
+
+
+
+
+

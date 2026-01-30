@@ -1,4 +1,9 @@
-web: cd backend && python manage.py migrate && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT
+web: cd backend && python manage.py migrate && python manage.py setup_google_oauth || true && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT
+
+
+
+
+
 
 
 

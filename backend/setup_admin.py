@@ -95,3 +95,8 @@ if Market.objects.exists():
 print(f"\n✅ Setup complete! You can now log in at /admin/")
 print("=" * 60)
 
+
+
+
+
+
