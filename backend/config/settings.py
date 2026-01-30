@@ -227,8 +227,8 @@ if os.getenv('RAILWAY_ENVIRONMENT') or os.getenv('RAILWAY_PROJECT_ID'):
     if railway_domain not in CSRF_TRUSTED_ORIGINS:
         CSRF_TRUSTED_ORIGINS.append(railway_domain)
     
-    # Add frontend domain to CSRF trusted origins
-    frontend_url = get_frontend_url()
+    # Add frontend domain to CSRF trusted origins (use helper function)
+    frontend_url = _get_frontend_url()
     if frontend_url and frontend_url not in CSRF_TRUSTED_ORIGINS:
         CSRF_TRUSTED_ORIGINS.append(frontend_url)
     
