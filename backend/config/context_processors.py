@@ -1,7 +1,7 @@
 """
 Custom context processors for Django templates.
 """
-from users.adapters import get_frontend_url
+from users.utils import get_frontend_url
 
 
 def frontend_url(request):
