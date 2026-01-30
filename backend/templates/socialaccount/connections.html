@@ -196,6 +196,8 @@
         
         <div class="add-connection">
             <h2>Add Connection</h2>
+            {% load allauth %}
+            {% load socialaccount %}
             {% get_providers as socialaccount_providers %}
             {% for provider in socialaccount_providers %}
                 {% if provider.id == "google" %}
