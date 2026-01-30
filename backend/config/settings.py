@@ -185,6 +185,7 @@ SOCIALACCOUNT_PROVIDERS = {
 SOCIALACCOUNT_ADAPTER = 'users.adapters.CustomSocialAccountAdapter'
 
 # Redirect URL after social login (will redirect to frontend)
+# Note: This is a fallback - the adapter handles the actual redirect
 LOGIN_REDIRECT_URL = config('FRONTEND_URL', default='http://localhost:3000')
 SOCIALACCOUNT_LOGIN_ON_GET = True  # Allow GET requests for OAuth
 
