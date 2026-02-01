@@ -197,8 +197,12 @@ SOCIALACCOUNT_ADAPTER = 'users.adapters.CustomSocialAccountAdapter'
 
 # Redirect URL after social login (will redirect to frontend)
 # Note: This is a fallback - the adapter handles the actual redirect
-LOGIN_REDIRECT_URL = config('FRONTEND_URL', default='http://localhost:3000')
+LOGIN_REDIRECT_URL = _get_frontend_url_for_settings()
 SOCIALACCOUNT_LOGIN_ON_GET = True  # Allow GET requests for OAuth
+
+# Force HTTPS in allauth-generated URLs on Railway
+if os.getenv('RAILWAY_ENVIRONMENT') or os.getenv('RAILWAY_PROJECT_ID'):
+    ACCOUNT_DEFAULT_HTTP_PROTOCOL = 'https'
 
 # REST Framework
 REST_FRAMEWORK = {
@@ -214,7 +218,7 @@ REST_FRAMEWORK = {
 
 # CORS settings
 # Allow frontend origin from environment variable (Railway will set this)
-FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:3000')
+FRONTEND_URL = _get_frontend_url_for_settings()
 CORS_ALLOWED_ORIGINS = config(
     'CORS_ALLOWED_ORIGINS',
     default=f'{FRONTEND_URL},http://localhost:3000,http://127.0.0.1:3000',
