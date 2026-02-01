@@ -192,12 +192,14 @@ SOCIALACCOUNT_PROVIDERS = {
     }
 }
 
-# Custom allauth adapter
+# Custom allauth adapters
+ACCOUNT_ADAPTER = 'users.adapters.CustomAccountAdapter'
 SOCIALACCOUNT_ADAPTER = 'users.adapters.CustomSocialAccountAdapter'
 
 # Redirect URL after social login (will redirect to frontend)
-# Note: This is a fallback - the adapter handles the actual redirect
+# Note: This is a fallback - the adapters handle the actual redirect
 LOGIN_REDIRECT_URL = _get_frontend_url_for_settings()
+LOGOUT_REDIRECT_URL = _get_frontend_url_for_settings()
 SOCIALACCOUNT_LOGIN_ON_GET = True  # Allow GET requests for OAuth
 
 # Force HTTPS in allauth-generated URLs on Railway
@@ -272,4 +274,34 @@ if not DEBUG:
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = 'DENY'
+
+# Logging configuration
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        'users': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+        'allauth': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+    },
+}
 

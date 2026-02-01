@@ -153,3 +153,4 @@ If you encounter issues:
 3. Test with a fresh OAuth client ID/secret
 4. Ensure all URLs match exactly between Google Console and your app
 
+

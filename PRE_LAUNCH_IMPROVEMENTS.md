@@ -395,3 +395,4 @@ def calculate_points(user):
 
 
 
+
