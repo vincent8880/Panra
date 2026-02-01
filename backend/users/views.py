@@ -10,17 +10,22 @@ from django.db.models import Q, F, Count, Sum
 from django.utils import timezone
 from django.contrib.auth import authenticate, login, logout
 from django.middleware.csrf import get_token
-from django.shortcuts import redirect
+from django.shortcuts import redirect, render
 from django.conf import settings
-from allauth.socialaccount.providers.google.views import oauth2_login
+from django.views import View
+from allauth.socialaccount.providers.google.views import oauth2_login, OAuth2CallbackView
 from allauth.socialaccount.providers.oauth2.client import OAuth2Client
 from allauth.socialaccount.models import SocialAccount
+from allauth.socialaccount.providers.google.provider import GoogleProvider
 from datetime import timedelta
 from decimal import Decimal
 from .models import User, UserProfile
 from .serializers import UserSerializer, UserProfileSerializer
 from trading.models import Trade, Position
 from markets.models import Market
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class UserViewSet(viewsets.ReadOnlyModelViewSet):
@@ -176,31 +181,76 @@ class GoogleOAuthInitView(APIView):
 class OAuthSuccessRedirectView(APIView):
     """
     Redirect to frontend after successful OAuth.
-    This handles the redirect manually to avoid corrupted content errors.
+    Uses a template with JavaScript redirect to avoid corrupted content errors.
     """
     permission_classes = [AllowAny]
 
     def get(self, request, *args, **kwargs):
-        from django.http import HttpResponseRedirect
         from .utils import get_frontend_url
-        import logging
-        
-        logger = logging.getLogger(__name__)
         
         # Get frontend URL
         frontend_url = get_frontend_url(request)
         redirect_url = f"{frontend_url}/?google_auth=success"
         
-        logger.info(f"OAuthSuccessRedirectView redirecting to: {redirect_url}")
+        logger.info(f"OAuthSuccessRedirectView rendering redirect page to: {redirect_url}")
         
-        # Use HttpResponseRedirect for a clean redirect
-        response = HttpResponseRedirect(redirect_url)
-        # Set cache-control headers to prevent caching issues
-        response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-        response['Pragma'] = 'no-cache'
-        response['Expires'] = '0'
+        # Render a template that does a JavaScript redirect
+        # This avoids HTTP redirect issues that cause corrupted content errors
+        return render(request, 'socialaccount/login_redirect.html', {
+            'redirect_url': redirect_url
+        })
+
+
+class CustomGoogleOAuth2CallbackView(View):
+    """
+    Custom Google OAuth callback view that renders a redirect page
+    instead of doing an HTTP redirect. This avoids corrupted content errors.
+    """
+    
+    def get(self, request, *args, **kwargs):
+        from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
+        from allauth.socialaccount.providers.oauth2.views import OAuth2CallbackView
+        from allauth.socialaccount.helpers import complete_social_login
+        from allauth.socialaccount.models import SocialLogin
+        from .utils import get_frontend_url
         
-        return response
+        try:
+            # Let allauth handle the OAuth callback
+            adapter = GoogleOAuth2Adapter(request)
+            callback_view = OAuth2CallbackView.adapter_view(GoogleOAuth2Adapter)
+            
+            # Process the callback using allauth's standard flow
+            response = callback_view(request)
+            
+            # If allauth returned a redirect, intercept it and show our page instead
+            if hasattr(response, 'url') or (hasattr(response, 'status_code') and response.status_code in [301, 302, 303, 307, 308]):
+                # Get the redirect URL
+                redirect_url = getattr(response, 'url', None)
+                if redirect_url:
+                    logger.info(f"Intercepting allauth redirect to: {redirect_url}")
+                    
+                    # Check if it's redirecting to our success handler or frontend
+                    frontend_url = get_frontend_url(request)
+                    if 'google_auth=success' in str(redirect_url) or frontend_url in str(redirect_url):
+                        # Render our custom redirect page instead
+                        final_url = f"{frontend_url}/?google_auth=success"
+                        return render(request, 'socialaccount/login_redirect.html', {
+                            'redirect_url': final_url
+                        })
+                
+                # For other redirects (like signup form), let them through
+                return response
+            
+            # For non-redirect responses, return as-is
+            return response
+            
+        except Exception as e:
+            logger.error(f"Error in CustomGoogleOAuth2CallbackView: {e}", exc_info=True)
+            # On error, redirect to frontend with error
+            frontend_url = get_frontend_url(request)
+            return render(request, 'socialaccount/login_redirect.html', {
+                'redirect_url': f"{frontend_url}/?google_auth=error"
+            })
 
 
 class LeaderboardViewSet(viewsets.ViewSet):

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redirecting... - Panra</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0a0a;
+            color: #e5e5e5;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            text-align: center;
+            padding: 40px;
+        }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #333;
+            border-top-color: #3b82f6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        h1 { font-size: 20px; margin-bottom: 10px; }
+        p { color: #888; font-size: 14px; }
+        a { color: #3b82f6; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="spinner"></div>
+        <h1>Login Successful!</h1>
+        <p>Redirecting you to Panra...</p>
+        <p style="margin-top: 20px; font-size: 12px;">
+            If you're not redirected, <a href="{{ redirect_url }}" id="manual-link">click here</a>
+        </p>
+    </div>
+    <script>
+        // Redirect after a brief delay to ensure session is saved
+        var redirectUrl = "{{ redirect_url|safe }}";
+        setTimeout(function() {
+            window.location.href = redirectUrl;
+        }, 500);
+    </script>
+</body>
+</html>
+
