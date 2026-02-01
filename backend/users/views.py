@@ -169,9 +169,11 @@ class GoogleOAuthInitView(APIView):
     def get(self, request, *args, **kwargs):
         from django.urls import reverse
         
-        # Get the Google OAuth login URL from allauth
-        google_login_url = reverse('google_login')
+        # Use our custom Google OAuth flow (bypasses allauth's redirect mechanism)
+        google_login_url = reverse('custom_google_login')
         full_url = request.build_absolute_uri(google_login_url)
+        
+        logger.info(f"GoogleOAuthInitView returning URL: {full_url}")
         
         return Response({
             'auth_url': full_url
@@ -203,54 +205,30 @@ class OAuthSuccessRedirectView(APIView):
 
 class CustomGoogleOAuth2CallbackView(View):
     """
-    Custom Google OAuth callback view that renders a redirect page
-    instead of doing an HTTP redirect. This avoids corrupted content errors.
+    Custom Google OAuth callback - testing minimal response first.
     """
     
     def get(self, request, *args, **kwargs):
-        from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
-        from allauth.socialaccount.providers.oauth2.views import OAuth2CallbackView
-        from allauth.socialaccount.helpers import complete_social_login
-        from allauth.socialaccount.models import SocialLogin
-        from .utils import get_frontend_url
+        from django.http import HttpResponse
         
-        try:
-            # Let allauth handle the OAuth callback
-            adapter = GoogleOAuth2Adapter(request)
-            callback_view = OAuth2CallbackView.adapter_view(GoogleOAuth2Adapter)
-            
-            # Process the callback using allauth's standard flow
-            response = callback_view(request)
-            
-            # If allauth returned a redirect, intercept it and show our page instead
-            if hasattr(response, 'url') or (hasattr(response, 'status_code') and response.status_code in [301, 302, 303, 307, 308]):
-                # Get the redirect URL
-                redirect_url = getattr(response, 'url', None)
-                if redirect_url:
-                    logger.info(f"Intercepting allauth redirect to: {redirect_url}")
-                    
-                    # Check if it's redirecting to our success handler or frontend
-                    frontend_url = get_frontend_url(request)
-                    if 'google_auth=success' in str(redirect_url) or frontend_url in str(redirect_url):
-                        # Render our custom redirect page instead
-                        final_url = f"{frontend_url}/?google_auth=success"
-                        return render(request, 'socialaccount/login_redirect.html', {
-                            'redirect_url': final_url
-                        })
-                
-                # For other redirects (like signup form), let them through
-                return response
-            
-            # For non-redirect responses, return as-is
-            return response
-            
-        except Exception as e:
-            logger.error(f"Error in CustomGoogleOAuth2CallbackView: {e}", exc_info=True)
-            # On error, redirect to frontend with error
-            frontend_url = get_frontend_url(request)
-            return render(request, 'socialaccount/login_redirect.html', {
-                'redirect_url': f"{frontend_url}/?google_auth=error"
-            })
+        # STEP 1: First, let's just see if our view is being called at all
+        # Return a simple HTML page without calling allauth
+        html = '''<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>OAuth Callback Test</title>
+</head>
+<body style="background:#0a0a0a;color:#fff;font-family:sans-serif;padding:50px;">
+    <h1>OAuth Callback Received!</h1>
+    <p>This view is working. Now processing your login...</p>
+    <p>If you see this page, the URL routing is working correctly.</p>
+</body>
+</html>'''
+        
+        response = HttpResponse(html, content_type='text/html')
+        response['Cache-Control'] = 'no-store'
+        return response
 
 
 class LeaderboardViewSet(viewsets.ViewSet):

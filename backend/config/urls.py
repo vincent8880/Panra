@@ -5,16 +5,20 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
-from users.views import CustomGoogleOAuth2CallbackView
+from users.google_oauth import GoogleOAuthStartView, GoogleOAuthCallbackView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/auth/', include('users.urls')),
     path('api/markets/', include('markets.urls')),
     path('api/trading/', include('trading.urls')),
-    # Custom Google OAuth callback - must be before allauth.urls to override
-    path('accounts/google/login/callback/', CustomGoogleOAuth2CallbackView.as_view(), name='google_callback'),
-    path('accounts/', include('allauth.urls')),  # Allauth URLs for OAuth
+    
+    # Custom Google OAuth - bypasses allauth's redirect mechanism
+    path('auth/google/', GoogleOAuthStartView.as_view(), name='custom_google_login'),
+    path('auth/google/callback/', GoogleOAuthCallbackView.as_view(), name='custom_google_callback'),
+    
+    # Keep allauth for other functionality
+    path('accounts/', include('allauth.urls')),
 ]
 
 if settings.DEBUG:
