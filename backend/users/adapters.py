@@ -58,11 +58,19 @@ class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
         return url
     
     def _get_redirect_url(self, request):
-        """Build the redirect URL to frontend."""
-        frontend = get_frontend_url(request)
-        # Ensure clean URL construction
-        redirect_url = f"{frontend}/?google_auth=success"
-        return redirect_url
+        """Build the redirect URL - use our custom view to avoid corrupted content errors."""
+        # Use absolute URL to our custom redirect handler
+        from django.urls import reverse
+        try:
+            # Redirect to our custom handler which does a clean redirect
+            redirect_url = request.build_absolute_uri(reverse('oauth-success-redirect'))
+            logger.info(f"_get_redirect_url built URL: {redirect_url}")
+            return redirect_url
+        except Exception as e:
+            # Fallback to direct frontend URL
+            logger.warning(f"Failed to build redirect URL: {e}")
+            frontend = get_frontend_url(request)
+            return f"{frontend}/?google_auth=success"
     
     def pre_social_login(self, request, sociallogin):
         """Called before social login completes."""

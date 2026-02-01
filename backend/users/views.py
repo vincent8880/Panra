@@ -173,6 +173,36 @@ class GoogleOAuthInitView(APIView):
         })
 
 
+class OAuthSuccessRedirectView(APIView):
+    """
+    Redirect to frontend after successful OAuth.
+    This handles the redirect manually to avoid corrupted content errors.
+    """
+    permission_classes = [AllowAny]
+
+    def get(self, request, *args, **kwargs):
+        from django.http import HttpResponseRedirect
+        from .utils import get_frontend_url
+        import logging
+        
+        logger = logging.getLogger(__name__)
+        
+        # Get frontend URL
+        frontend_url = get_frontend_url(request)
+        redirect_url = f"{frontend_url}/?google_auth=success"
+        
+        logger.info(f"OAuthSuccessRedirectView redirecting to: {redirect_url}")
+        
+        # Use HttpResponseRedirect for a clean redirect
+        response = HttpResponseRedirect(redirect_url)
+        # Set cache-control headers to prevent caching issues
+        response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response['Pragma'] = 'no-cache'
+        response['Expires'] = '0'
+        
+        return response
+
+
 class LeaderboardViewSet(viewsets.ViewSet):
     """Leaderboard endpoints for rankings."""
     permission_classes = [AllowAny]  # Public leaderboard
