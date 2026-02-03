@@ -283,55 +283,12 @@ class GoogleOAuthCallbackView(View):
             return None
     
     def _redirect_response(self, url):
-        """Return an HTML page that redirects via JavaScript with proper escaping."""
-        import html as html_module
-        import json
+        """Return an HTTP redirect response."""
+        from django.http import HttpResponseRedirect
         
-        logger.info(f"Creating redirect response to: {url}")
+        logger.info(f"Redirecting to: {url}")
         
-        # Properly escape URL for different contexts
-        url_html = html_module.escape(url)
-        url_js = json.dumps(url)  # JSON encoding handles JS string escaping
-        
-        html = f'''<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <title>Redirecting...</title>
-</head>
-<body style="background:#0a0a0a;color:#fff;font-family:sans-serif;display:flex;justify-content:center;align-items:center;height:100vh;margin:0;">
-    <div style="text-align:center;">
-        <div style="width:40px;height:40px;border:3px solid #333;border-top-color:#3b82f6;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 20px;"></div>
-        <p>Login successful! Redirecting...</p>
-        <p style="margin-top:20px;font-size:12px;"><a href="{url_html}" id="redirect-link" style="color:#3b82f6;">Click here if not redirected automatically</a></p>
-    </div>
-    <style>@keyframes spin {{ to {{ transform: rotate(360deg); }} }}</style>
-    <script type="text/javascript">
-        (function() {{
-            var targetUrl = {url_js};
-            console.log("Redirecting to:", targetUrl);
-            
-            // Try multiple redirect methods
-            try {{
-                window.location.replace(targetUrl);
-            }} catch(e) {{
-                console.error("location.replace failed:", e);
-                try {{
-                    window.location.href = targetUrl;
-                }} catch(e2) {{
-                    console.error("location.href failed:", e2);
-                    document.getElementById('redirect-link').click();
-                }}
-            }}
-        }})();
-    </script>
-</body>
-</html>'''
-        response = HttpResponse(html, content_type='text/html; charset=utf-8')
-        response['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
-        response['Pragma'] = 'no-cache'
-        response['Expires'] = '0'
-        # Remove any headers that might interfere
-        return response
+        # Try a simple HTTP redirect - our custom OAuth flow should work
+        return HttpResponseRedirect(url)
 
 
