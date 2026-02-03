@@ -54,3 +54,4 @@ However, **the most reliable solution is to set the `FRONTEND_URL` environment v
 The code has a fallback to `http://localhost:3000` for local development. When `FRONTEND_URL` isn't set in Railway, it uses this default. Setting the environment variable ensures the correct URL is used in production.
 
 
+

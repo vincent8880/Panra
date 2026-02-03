@@ -42,6 +42,10 @@ class GoogleOAuthStartView(View):
     """Start the Google OAuth flow."""
     
     def get(self, request):
+        import html as html_module
+        import json
+        from urllib.parse import urlencode, quote
+        
         client_id, _ = get_google_credentials()
         
         if not client_id:
@@ -50,15 +54,21 @@ class GoogleOAuthStartView(View):
         # Build the callback URL
         callback_url = request.build_absolute_uri('/auth/google/callback/')
         
-        # Build Google OAuth URL
-        google_auth_url = (
-            f"https://accounts.google.com/o/oauth2/v2/auth?"
-            f"client_id={client_id}&"
-            f"redirect_uri={callback_url}&"
-            f"response_type=code&"
-            f"scope=openid%20email%20profile&"
-            f"access_type=online"
-        )
+        logger.info(f"Google OAuth start - callback URL: {callback_url}")
+        
+        # Build Google OAuth URL using proper URL encoding
+        params = {
+            'client_id': client_id,
+            'redirect_uri': callback_url,
+            'response_type': 'code',
+            'scope': 'openid email profile',
+            'access_type': 'online',
+        }
+        google_auth_url = f"https://accounts.google.com/o/oauth2/v2/auth?{urlencode(params)}"
+        
+        # Properly escape for HTML and JS
+        url_html = html_module.escape(google_auth_url)
+        url_js = json.dumps(google_auth_url)
         
         # Return HTML that redirects - avoids HTTP redirect issues
         html = f'''<!DOCTYPE html>
@@ -66,16 +76,26 @@ class GoogleOAuthStartView(View):
 <head>
     <meta charset="utf-8">
     <title>Redirecting to Google...</title>
-    <meta http-equiv="refresh" content="0;url={google_auth_url}">
 </head>
 <body style="background:#0a0a0a;color:#fff;font-family:sans-serif;display:flex;justify-content:center;align-items:center;height:100vh;margin:0;">
     <div style="text-align:center;">
+        <div style="width:40px;height:40px;border:3px solid #333;border-top-color:#4285F4;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 20px;"></div>
         <p>Redirecting to Google...</p>
-        <p><a href="{google_auth_url}" style="color:#3b82f6;">Click here if not redirected</a></p>
+        <p style="margin-top:20px;font-size:12px;"><a href="{url_html}" id="google-link" style="color:#3b82f6;">Click here if not redirected</a></p>
     </div>
+    <style>@keyframes spin {{ to {{ transform: rotate(360deg); }} }}</style>
+    <script type="text/javascript">
+        (function() {{
+            var targetUrl = {url_js};
+            console.log("Redirecting to Google:", targetUrl);
+            window.location.replace(targetUrl);
+        }})();
+    </script>
 </body>
 </html>'''
-        return HttpResponse(html, content_type='text/html; charset=utf-8')
+        response = HttpResponse(html, content_type='text/html; charset=utf-8')
+        response['Cache-Control'] = 'no-store, no-cache, must-revalidate'
+        return response
     
     def _error_response(self, message):
         frontend_url = get_frontend_url()
@@ -263,26 +283,55 @@ class GoogleOAuthCallbackView(View):
             return None
     
     def _redirect_response(self, url):
-        """Return an HTML page that redirects via meta refresh and JavaScript."""
+        """Return an HTML page that redirects via JavaScript with proper escaping."""
+        import html as html_module
+        import json
+        
+        logger.info(f"Creating redirect response to: {url}")
+        
+        # Properly escape URL for different contexts
+        url_html = html_module.escape(url)
+        url_js = json.dumps(url)  # JSON encoding handles JS string escaping
+        
         html = f'''<!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8">
     <title>Redirecting...</title>
-    <meta http-equiv="refresh" content="0;url={url}">
-    <script>window.location.href = "{url}";</script>
 </head>
 <body style="background:#0a0a0a;color:#fff;font-family:sans-serif;display:flex;justify-content:center;align-items:center;height:100vh;margin:0;">
     <div style="text-align:center;">
         <div style="width:40px;height:40px;border:3px solid #333;border-top-color:#3b82f6;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 20px;"></div>
-        <p>Completing login...</p>
-        <p style="margin-top:20px;font-size:12px;"><a href="{url}" style="color:#3b82f6;">Click here if not redirected</a></p>
+        <p>Login successful! Redirecting...</p>
+        <p style="margin-top:20px;font-size:12px;"><a href="{url_html}" id="redirect-link" style="color:#3b82f6;">Click here if not redirected automatically</a></p>
     </div>
     <style>@keyframes spin {{ to {{ transform: rotate(360deg); }} }}</style>
+    <script type="text/javascript">
+        (function() {{
+            var targetUrl = {url_js};
+            console.log("Redirecting to:", targetUrl);
+            
+            // Try multiple redirect methods
+            try {{
+                window.location.replace(targetUrl);
+            }} catch(e) {{
+                console.error("location.replace failed:", e);
+                try {{
+                    window.location.href = targetUrl;
+                }} catch(e2) {{
+                    console.error("location.href failed:", e2);
+                    document.getElementById('redirect-link').click();
+                }}
+            }}
+        }})();
+    </script>
 </body>
 </html>'''
         response = HttpResponse(html, content_type='text/html; charset=utf-8')
-        response['Cache-Control'] = 'no-store, no-cache, must-revalidate'
+        response['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
         response['Pragma'] = 'no-cache'
+        response['Expires'] = '0'
+        # Remove any headers that might interfere
         return response
+
 
