@@ -117,79 +117,25 @@ class GoogleOAuthCallbackView(View):
     """Handle the Google OAuth callback."""
     
     def get(self, request):
-        code = request.GET.get('code')
-        error = request.GET.get('error')
+        """
+        TEMPORARY: minimal response to debug 'Corrupted Content Error'.
         
-        frontend_url = get_frontend_url()
-
-        # Always redirect the user back to the login page with a status flag
-        login_base = f"{frontend_url}/login"
-        
-        if error:
-            logger.warning(f"Google OAuth error: {error}")
-            return self._redirect_response(f"{login_base}?google_auth=error&reason={error}")
-        
-        if not code:
-            logger.warning("No code in Google callback")
-            return self._redirect_response(f"{login_base}?google_auth=error&reason=no_code")
-        
-        try:
-            # Exchange code for tokens
-            client_id, client_secret = get_google_credentials()
-            callback_url = request.build_absolute_uri('/auth/google/callback/')
-            
-            token_response = requests.post(
-                'https://oauth2.googleapis.com/token',
-                data={
-                    'code': code,
-                    'client_id': client_id,
-                    'client_secret': client_secret,
-                    'redirect_uri': callback_url,
-                    'grant_type': 'authorization_code',
-                },
-                timeout=10
-            )
-            
-            if token_response.status_code != 200:
-                logger.error(f"Token exchange failed: {token_response.text}")
-                return self._redirect_response(f"{login_base}?google_auth=error&reason=token_exchange_failed")
-            
-            tokens = token_response.json()
-            access_token = tokens.get('access_token')
-            
-            # Get user info from Google
-            userinfo_response = requests.get(
-                'https://www.googleapis.com/oauth2/v2/userinfo',
-                headers={'Authorization': f'Bearer {access_token}'},
-                timeout=10
-            )
-            
-            if userinfo_response.status_code != 200:
-                logger.error(f"Failed to get user info: {userinfo_response.text}")
-                return self._redirect_response(f"{login_base}?google_auth=error&reason=userinfo_failed")
-            
-            userinfo = userinfo_response.json()
-            google_id = userinfo.get('id')
-            email = userinfo.get('email')
-            name = userinfo.get('name', '')
-            
-            logger.info(f"Google user info: id={google_id}, email={email}")
-            
-            # Find or create user
-            user = self._get_or_create_user(google_id, email, name, access_token, tokens)
-            
-            if user:
-                # Log the user in
-                login(request, user, backend='allauth.account.auth_backends.AuthenticationBackend')
-                logger.info(f"User {user.username} logged in via Google")
-                # Send them back to /login where the frontend already handles ?google_auth=success
-                return self._redirect_response(f"{login_base}?google_auth=success")
-            else:
-                return self._redirect_response(f"{login_base}?google_auth=error&reason=user_creation_failed")
-                
-        except Exception as e:
-            logger.exception(f"Error in Google OAuth callback: {e}")
-            return self._redirect_response(f"{login_base}?google_auth=error&reason=exception")
+        If this simple HTML still triggers corruption, the problem is at the
+        HTTP/proxy level, not in our view logic.
+        """
+        logger.info("GoogleOAuthCallbackView hit with query params: %s", request.GET.dict())
+        html = """<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>Google OAuth Callback</title></head>
+<body style="background:#0a0a0a;color:#fff;font-family:sans-serif;display:flex;justify-content:center;align-items:center;height:100vh;margin:0;">
+  <div style="text-align:center;">
+    <h1>Google OAuth Callback Reached</h1>
+    <p>This is a temporary debug page. The backend is reachable.</p>
+    <p>You can close this tab and go back to the app.</p>
+  </div>
+</body>
+</html>"""
+        return HttpResponse(html, content_type="text/html; charset=utf-8")
     
     def _get_or_create_user(self, google_id, email, name, access_token, tokens):
         """Get existing user or create new one."""
