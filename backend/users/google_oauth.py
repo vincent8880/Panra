@@ -286,11 +286,46 @@ class GoogleOAuthCallbackView(View):
             return None
     
     def _redirect_response(self, url):
-        """Return a plain HTTP redirect response back to the frontend."""
-        from django.http import HttpResponseRedirect
+        """Return a tiny HTML page that immediately redirects via JavaScript.
 
-        logger.info(f"Redirecting via HTTP 302 to: {url}")
-        response = HttpResponseRedirect(url)
+        We use this instead of an HTTP 302 to avoid the corrupted-content issue
+        we've seen with redirects through the Railway proxy.
+        """
+        import html as html_module
+        import json
+
+        logger.info(f"Redirecting via HTML+JS to: {url}")
+
+        url_html = html_module.escape(url)
+        url_js = json.dumps(url)  # safe JS string
+
+        html = f"""<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Redirecting…</title>
+  </head>
+  <body style="background:#0a0a0a;color:#fff;font-family:sans-serif;display:flex;justify-content:center;align-items:center;height:100vh;margin:0;">
+    <div style="text-align:center;">
+      <p>Login successful. Redirecting…</p>
+      <p style="margin-top:12px;font-size:12px;">
+        <a id="redirect-link" href="{url_html}" style="color:#3b82f6;">Click here if not redirected automatically</a>
+      </p>
+    </div>
+    <script>
+      (function() {{
+        var target = {url_js};
+        try {{
+          window.location.replace(target);
+        }} catch (e) {{
+          window.location.href = target;
+        }}
+      }})();
+    </script>
+  </body>
+</html>"""
+
+        response = HttpResponse(html, content_type="text/html; charset=utf-8")
         response["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
         response["Pragma"] = "no-cache"
         response["Expires"] = "0"
