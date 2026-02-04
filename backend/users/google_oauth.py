@@ -121,14 +121,17 @@ class GoogleOAuthCallbackView(View):
         error = request.GET.get('error')
         
         frontend_url = get_frontend_url()
+
+        # Always redirect the user back to the login page with a status flag
+        login_base = f"{frontend_url}/login"
         
         if error:
             logger.warning(f"Google OAuth error: {error}")
-            return self._redirect_response(f"{frontend_url}/?google_auth=error&reason={error}")
+            return self._redirect_response(f"{login_base}?google_auth=error&reason={error}")
         
         if not code:
             logger.warning("No code in Google callback")
-            return self._redirect_response(f"{frontend_url}/?google_auth=error&reason=no_code")
+            return self._redirect_response(f"{login_base}?google_auth=error&reason=no_code")
         
         try:
             # Exchange code for tokens
@@ -149,7 +152,7 @@ class GoogleOAuthCallbackView(View):
             
             if token_response.status_code != 200:
                 logger.error(f"Token exchange failed: {token_response.text}")
-                return self._redirect_response(f"{frontend_url}/?google_auth=error&reason=token_exchange_failed")
+                return self._redirect_response(f"{login_base}?google_auth=error&reason=token_exchange_failed")
             
             tokens = token_response.json()
             access_token = tokens.get('access_token')
@@ -163,7 +166,7 @@ class GoogleOAuthCallbackView(View):
             
             if userinfo_response.status_code != 200:
                 logger.error(f"Failed to get user info: {userinfo_response.text}")
-                return self._redirect_response(f"{frontend_url}/?google_auth=error&reason=userinfo_failed")
+                return self._redirect_response(f"{login_base}?google_auth=error&reason=userinfo_failed")
             
             userinfo = userinfo_response.json()
             google_id = userinfo.get('id')
@@ -179,13 +182,14 @@ class GoogleOAuthCallbackView(View):
                 # Log the user in
                 login(request, user, backend='allauth.account.auth_backends.AuthenticationBackend')
                 logger.info(f"User {user.username} logged in via Google")
-                return self._redirect_response(f"{frontend_url}/?google_auth=success")
+                # Send them back to /login where the frontend already handles ?google_auth=success
+                return self._redirect_response(f"{login_base}?google_auth=success")
             else:
-                return self._redirect_response(f"{frontend_url}/?google_auth=error&reason=user_creation_failed")
+                return self._redirect_response(f"{login_base}?google_auth=error&reason=user_creation_failed")
                 
         except Exception as e:
             logger.exception(f"Error in Google OAuth callback: {e}")
-            return self._redirect_response(f"{frontend_url}/?google_auth=error&reason=exception")
+            return self._redirect_response(f"{login_base}?google_auth=error&reason=exception")
     
     def _get_or_create_user(self, google_id, email, name, access_token, tokens):
         """Get existing user or create new one."""
