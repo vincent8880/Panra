@@ -114,28 +114,81 @@ class GoogleOAuthStartView(View):
 
 
 class GoogleOAuthCallbackView(View):
-    """Handle the Google OAuth callback."""
-    
+    """Handle the Google OAuth callback and then send user back to the frontend."""
+
     def get(self, request):
-        """
-        TEMPORARY: minimal response to debug 'Corrupted Content Error'.
-        
-        If this simple HTML still triggers corruption, the problem is at the
-        HTTP/proxy level, not in our view logic.
-        """
-        logger.info("GoogleOAuthCallbackView hit with query params: %s", request.GET.dict())
-        html = """<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"><title>Google OAuth Callback</title></head>
-<body style="background:#0a0a0a;color:#fff;font-family:sans-serif;display:flex;justify-content:center;align-items:center;height:100vh;margin:0;">
-  <div style="text-align:center;">
-    <h1>Google OAuth Callback Reached</h1>
-    <p>This is a temporary debug page. The backend is reachable.</p>
-    <p>You can close this tab and go back to the app.</p>
-  </div>
-</body>
-</html>"""
-        return HttpResponse(html, content_type="text/html; charset=utf-8")
+        code = request.GET.get('code')
+        error = request.GET.get('error')
+
+        frontend_url = get_frontend_url()
+        login_base = f"{frontend_url}/login"
+
+        logger.info("GoogleOAuthCallbackView called with params: %s", request.GET.dict())
+
+        if error:
+            logger.warning(f"Google OAuth error: {error}")
+            return self._redirect_response(f"{login_base}?google_auth=error&reason={error}")
+
+        if not code:
+            logger.warning("No code in Google callback")
+            return self._redirect_response(f"{login_base}?google_auth=error&reason=no_code")
+
+        try:
+            # Exchange code for tokens
+            client_id, client_secret = get_google_credentials()
+            callback_url = request.build_absolute_uri('/auth/google/callback/')
+
+            token_response = requests.post(
+                'https://oauth2.googleapis.com/token',
+                data={
+                    'code': code,
+                    'client_id': client_id,
+                    'client_secret': client_secret,
+                    'redirect_uri': callback_url,
+                    'grant_type': 'authorization_code',
+                },
+                timeout=10,
+            )
+
+            if token_response.status_code != 200:
+                logger.error(f"Token exchange failed: {token_response.text}")
+                return self._redirect_response(f"{login_base}?google_auth=error&reason=token_exchange_failed")
+
+            tokens = token_response.json()
+            access_token = tokens.get('access_token')
+
+            # Get user info from Google
+            userinfo_response = requests.get(
+                'https://www.googleapis.com/oauth2/v2/userinfo',
+                headers={'Authorization': f'Bearer {access_token}'},
+                timeout=10,
+            )
+
+            if userinfo_response.status_code != 200:
+                logger.error(f"Failed to get user info: {userinfo_response.text}")
+                return self._redirect_response(f"{login_base}?google_auth=error&reason=userinfo_failed")
+
+            userinfo = userinfo_response.json()
+            google_id = userinfo.get('id')
+            email = userinfo.get('email')
+            name = userinfo.get('name', '')
+
+            logger.info(f"Google user info: id={google_id}, email={email}")
+
+            # Find or create user
+            user = self._get_or_create_user(google_id, email, name, access_token, tokens)
+
+            if user:
+                # Log the user in (session cookie)
+                login(request, user, backend='allauth.account.auth_backends.AuthenticationBackend')
+                logger.info(f"User {user.username} logged in via Google")
+                return self._redirect_response(f"{login_base}?google_auth=success")
+            else:
+                return self._redirect_response(f"{login_base}?google_auth=error&reason=user_creation_failed")
+
+        except Exception as e:
+            logger.exception(f"Error in Google OAuth callback: {e}")
+            return self._redirect_response(f"{login_base}?google_auth=error&reason=exception")
     
     def _get_or_create_user(self, google_id, email, name, access_token, tokens):
         """Get existing user or create new one."""
@@ -233,12 +286,47 @@ class GoogleOAuthCallbackView(View):
             return None
     
     def _redirect_response(self, url):
-        """Return an HTTP redirect response."""
-        from django.http import HttpResponseRedirect
-        
-        logger.info(f"Redirecting to: {url}")
-        
-        # Try a simple HTTP redirect - our custom OAuth flow should work
-        return HttpResponseRedirect(url)
+        """Return a small HTML page that immediately redirects via JavaScript."""
+        import html as html_module
+        import json
+
+        logger.info(f"Redirecting (HTML+JS) to: {url}")
+
+        url_html = html_module.escape(url)
+        url_js = json.dumps(url)  # proper JS string escaping
+
+        html = f"""<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Redirecting...</title>
+</head>
+<body style="background:#0a0a0a;color:#fff;font-family:sans-serif;display:flex;justify-content:center;align-items:center;height:100vh;margin:0;">
+  <div style="text-align:center;">
+    <div style="width:40px;height:40px;border:3px solid #333;border-top-color:#3b82f6;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 20px;"></div>
+    <p>Login successful! Redirecting...</p>
+    <p style="margin-top:20px;font-size:12px;">
+      <a href="{url_html}" id="redirect-link" style="color:#3b82f6;">Click here if not redirected automatically</a>
+    </p>
+  </div>
+  <style>@keyframes spin {{ to {{ transform: rotate(360deg); }} }}</style>
+  <script type="text/javascript">
+    (function() {{
+      var targetUrl = {url_js};
+      try {{
+        window.location.replace(targetUrl);
+      }} catch (e) {{
+        window.location.href = targetUrl;
+      }}
+    }})();
+  </script>
+</body>
+</html>"""
+
+        response = HttpResponse(html, content_type="text/html; charset=utf-8")
+        response["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        response["Pragma"] = "no-cache"
+        response["Expires"] = "0"
+        return response
 
 
