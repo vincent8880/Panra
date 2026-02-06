@@ -119,27 +119,10 @@ class GoogleOAuthCallbackView(View):
     def get(self, request):
         code = request.GET.get('code')
         error = request.GET.get('error')
-
         frontend_url = get_frontend_url()
-        login_base = f"{frontend_url}/login"
 
-        # Log everything for debugging
-        logger.info("=" * 80)
-        logger.info("GoogleOAuthCallbackView called")
-        logger.info(f"Request path: {request.path}")
-        logger.info(f"Request GET params: {request.GET.dict()}")
-        logger.info(f"Request META: {dict(request.META.get('HTTP_REFERER', 'N/A'))}")
-        logger.info("=" * 80)
-
-        if error:
-            error_msg = f"Google OAuth error: {error}"
-            logger.error(error_msg)
-            return self._error_response(error_msg, login_base)
-
-        if not code:
-            error_msg = "No authorization code received from Google"
-            logger.error(error_msg)
-            return self._error_response(error_msg, login_base)
+        if error or not code:
+            return self._redirect_response(f"{frontend_url}/login?google_auth=error")
 
         try:
             # Exchange code for tokens
@@ -159,9 +142,7 @@ class GoogleOAuthCallbackView(View):
             )
 
             if token_response.status_code != 200:
-                error_msg = f"Token exchange failed (status {token_response.status_code}): {token_response.text}"
-                logger.error(error_msg)
-                return self._error_response(f"Failed to exchange authorization code. Please try again.", login_base)
+                return self._redirect_response(f"{frontend_url}/login?google_auth=error")
 
             tokens = token_response.json()
             access_token = tokens.get('access_token')
@@ -174,9 +155,7 @@ class GoogleOAuthCallbackView(View):
             )
 
             if userinfo_response.status_code != 200:
-                error_msg = f"Failed to get user info (status {userinfo_response.status_code}): {userinfo_response.text}"
-                logger.error(error_msg)
-                return self._error_response("Failed to retrieve user information from Google. Please try again.", login_base)
+                return self._redirect_response(f"{frontend_url}/login?google_auth=error")
 
             userinfo = userinfo_response.json()
             google_id = userinfo.get('id')
@@ -187,27 +166,16 @@ class GoogleOAuthCallbackView(View):
 
             # Find or create user
             user = self._get_or_create_user(google_id, email, name, access_token, tokens)
-
             if not user:
-                error_msg = "Failed to create or retrieve user account"
-                logger.error(error_msg)
-                return self._error_response("Failed to create your account. Please try again or contact support.", login_base)
+                return self._redirect_response(f"{frontend_url}/login?google_auth=error")
             
-            # Log the user in (session cookie)
-            try:
-                login(request, user, backend='django.contrib.auth.backends.ModelBackend')
-                logger.info(f"User {user.username} logged in via Google (session created)")
-            except Exception as e:
-                error_msg = f"Failed to create login session: {e}"
-                logger.exception(error_msg)
-                return self._error_response("Failed to log you in. Please try again.", login_base)
-            
-            return self._redirect_response(f"{login_base}?google_auth=success")
+            # Log the user in
+            login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+            return self._redirect_response(f"{frontend_url}/login?google_auth=success")
 
         except Exception as e:
-            error_msg = f"Unexpected error during OAuth: {e}"
-            logger.exception(error_msg)
-            return self._error_response("An unexpected error occurred. Please try again or use email/password login.", login_base)
+            logger.exception(f"OAuth error: {e}")
+            return self._redirect_response(f"{frontend_url}/login?google_auth=error")
     
     def _get_or_create_user(self, google_id, email, name, access_token, tokens):
         """Get existing user or create new one."""
@@ -324,34 +292,22 @@ class GoogleOAuthCallbackView(View):
         import html as html_module
         import json
 
-        logger.info(f"Redirecting via HTML+JS to: {url}")
-
         url_html = html_module.escape(url)
-        url_js = json.dumps(url)  # safe JS string
+        url_js = json.dumps(url)
 
         html = f"""<!DOCTYPE html>
 <html>
   <head>
     <meta charset="utf-8" />
+    <meta http-equiv="refresh" content="0;url={url_html}" />
     <title>Redirecting…</title>
   </head>
   <body style="background:#0a0a0a;color:#fff;font-family:sans-serif;display:flex;justify-content:center;align-items:center;height:100vh;margin:0;">
     <div style="text-align:center;">
-      <p>Login successful. Redirecting…</p>
-      <p style="margin-top:12px;font-size:12px;">
-        <a id="redirect-link" href="{url_html}" style="color:#3b82f6;">Click here if not redirected automatically</a>
-      </p>
+      <p>Redirecting…</p>
+      <p style="margin-top:12px;font-size:12px;"><a href="{url_html}" style="color:#3b82f6;">Click here</a></p>
     </div>
-    <script>
-      (function() {{
-        var target = {url_js};
-        try {{
-          window.location.replace(target);
-        }} catch (e) {{
-          window.location.href = target;
-        }}
-      }})();
-    </script>
+    <script>window.location.replace({url_js});</script>
   </body>
 </html>"""
 
@@ -361,41 +317,5 @@ class GoogleOAuthCallbackView(View):
         response["Expires"] = "0"
         return response
     
-    def _error_response(self, error_message, login_base):
-        """Return an error page that redirects to login with error message."""
-        import html as html_module
-        import json
-        
-        error_url = f"{login_base}?google_auth=error&message={html_module.escape(error_message)}"
-        url_js = json.dumps(error_url)
-        
-        html = f"""<!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <title>Login Error</title>
-  </head>
-  <body style="background:#0a0a0a;color:#fff;font-family:sans-serif;display:flex;justify-content:center;align-items:center;height:100vh;margin:0;">
-    <div style="text-align:center;max-width:500px;padding:20px;">
-      <h1 style="color:#ef4444;margin-bottom:20px;">Login Failed</h1>
-      <p style="margin-bottom:20px;color:#fca5a5;">{html_module.escape(error_message)}</p>
-      <p style="margin-top:20px;font-size:12px;">
-        <a id="redirect-link" href="{html_module.escape(error_url)}" style="color:#3b82f6;">Return to login page</a>
-      </p>
-    </div>
-    <script>
-      (function() {{
-        var target = {url_js};
-        setTimeout(function() {{
-          window.location.replace(target);
-        }}, 2000);
-      }})();
-    </script>
-  </body>
-</html>"""
-        
-        response = HttpResponse(html, content_type="text/html; charset=utf-8")
-        response["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
-        return response
 
 
