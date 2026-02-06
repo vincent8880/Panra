@@ -123,15 +123,23 @@ class GoogleOAuthCallbackView(View):
         frontend_url = get_frontend_url()
         login_base = f"{frontend_url}/login"
 
-        logger.info("GoogleOAuthCallbackView called with params: %s", request.GET.dict())
+        # Log everything for debugging
+        logger.info("=" * 80)
+        logger.info("GoogleOAuthCallbackView called")
+        logger.info(f"Request path: {request.path}")
+        logger.info(f"Request GET params: {request.GET.dict()}")
+        logger.info(f"Request META: {dict(request.META.get('HTTP_REFERER', 'N/A'))}")
+        logger.info("=" * 80)
 
         if error:
-            logger.warning(f"Google OAuth error: {error}")
-            return self._redirect_response(f"{login_base}?google_auth=error&reason={error}")
+            error_msg = f"Google OAuth error: {error}"
+            logger.error(error_msg)
+            return self._error_response(error_msg, login_base)
 
         if not code:
-            logger.warning("No code in Google callback")
-            return self._redirect_response(f"{login_base}?google_auth=error&reason=no_code")
+            error_msg = "No authorization code received from Google"
+            logger.error(error_msg)
+            return self._error_response(error_msg, login_base)
 
         try:
             # Exchange code for tokens
@@ -151,8 +159,9 @@ class GoogleOAuthCallbackView(View):
             )
 
             if token_response.status_code != 200:
-                logger.error(f"Token exchange failed: {token_response.text}")
-                return self._redirect_response(f"{login_base}?google_auth=error&reason=token_exchange_failed")
+                error_msg = f"Token exchange failed (status {token_response.status_code}): {token_response.text}"
+                logger.error(error_msg)
+                return self._error_response(f"Failed to exchange authorization code. Please try again.", login_base)
 
             tokens = token_response.json()
             access_token = tokens.get('access_token')
@@ -165,8 +174,9 @@ class GoogleOAuthCallbackView(View):
             )
 
             if userinfo_response.status_code != 200:
-                logger.error(f"Failed to get user info: {userinfo_response.text}")
-                return self._redirect_response(f"{login_base}?google_auth=error&reason=userinfo_failed")
+                error_msg = f"Failed to get user info (status {userinfo_response.status_code}): {userinfo_response.text}"
+                logger.error(error_msg)
+                return self._error_response("Failed to retrieve user information from Google. Please try again.", login_base)
 
             userinfo = userinfo_response.json()
             google_id = userinfo.get('id')
@@ -178,21 +188,50 @@ class GoogleOAuthCallbackView(View):
             # Find or create user
             user = self._get_or_create_user(google_id, email, name, access_token, tokens)
 
-            if user:
-                # Log the user in (session cookie)
-                login(request, user, backend='allauth.account.auth_backends.AuthenticationBackend')
-                logger.info(f"User {user.username} logged in via Google")
-                return self._redirect_response(f"{login_base}?google_auth=success")
-            else:
-                return self._redirect_response(f"{login_base}?google_auth=error&reason=user_creation_failed")
+            if not user:
+                error_msg = "Failed to create or retrieve user account"
+                logger.error(error_msg)
+                return self._error_response("Failed to create your account. Please try again or contact support.", login_base)
+            
+            # Log the user in (session cookie)
+            try:
+                login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+                logger.info(f"User {user.username} logged in via Google (session created)")
+            except Exception as e:
+                error_msg = f"Failed to create login session: {e}"
+                logger.exception(error_msg)
+                return self._error_response("Failed to log you in. Please try again.", login_base)
+            
+            return self._redirect_response(f"{login_base}?google_auth=success")
 
         except Exception as e:
-            logger.exception(f"Error in Google OAuth callback: {e}")
-            return self._redirect_response(f"{login_base}?google_auth=error&reason=exception")
+            error_msg = f"Unexpected error during OAuth: {e}"
+            logger.exception(error_msg)
+            return self._error_response("An unexpected error occurred. Please try again or use email/password login.", login_base)
     
     def _get_or_create_user(self, google_id, email, name, access_token, tokens):
         """Get existing user or create new one."""
         try:
+            # Get or create SocialApp first (required for tokens)
+            try:
+                app = SocialApp.objects.get(provider='google')
+            except SocialApp.DoesNotExist:
+                logger.warning("SocialApp for google not found, creating it")
+                client_id, client_secret = get_google_credentials()
+                if not client_id:
+                    logger.error("Cannot create SocialApp: no credentials")
+                    return None
+                from django.contrib.sites.models import Site
+                site = Site.objects.get_current()
+                app = SocialApp.objects.create(
+                    provider='google',
+                    name='Google',
+                    client_id=client_id,
+                    secret=client_secret,
+                )
+                app.sites.add(site)
+                logger.info("Created SocialApp for google")
+            
             # Check if we have a social account for this Google ID
             try:
                 social_account = SocialAccount.objects.get(provider='google', uid=google_id)
@@ -202,6 +241,7 @@ class GoogleOAuthCallbackView(View):
                 # Update token
                 SocialToken.objects.update_or_create(
                     account=social_account,
+                    app=app,
                     defaults={
                         'token': access_token,
                         'token_secret': tokens.get('refresh_token', ''),
@@ -225,19 +265,13 @@ class GoogleOAuthCallbackView(View):
                         extra_data={'email': email, 'name': name}
                     )
                     
-                    # Get or create SocialApp
-                    try:
-                        app = SocialApp.objects.get(provider='google')
-                    except SocialApp.DoesNotExist:
-                        app = None
-                    
-                    if app:
-                        SocialToken.objects.create(
-                            account=social_account,
-                            app=app,
-                            token=access_token,
-                            token_secret=tokens.get('refresh_token', ''),
-                        )
+                    # Create token
+                    SocialToken.objects.create(
+                        account=social_account,
+                        app=app,
+                        token=access_token,
+                        token_secret=tokens.get('refresh_token', ''),
+                    )
                     
                     return user
                 except User.DoesNotExist:
@@ -267,17 +301,13 @@ class GoogleOAuthCallbackView(View):
                 extra_data={'email': email, 'name': name}
             )
             
-            # Get or create SocialApp and token
-            try:
-                app = SocialApp.objects.get(provider='google')
-                SocialToken.objects.create(
-                    account=social_account,
-                    app=app,
-                    token=access_token,
-                    token_secret=tokens.get('refresh_token', ''),
-                )
-            except SocialApp.DoesNotExist:
-                pass
+            # Create token
+            SocialToken.objects.create(
+                account=social_account,
+                app=app,
+                token=access_token,
+                token_secret=tokens.get('refresh_token', ''),
+            )
             
             return user
             
@@ -329,6 +359,43 @@ class GoogleOAuthCallbackView(View):
         response["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
         response["Pragma"] = "no-cache"
         response["Expires"] = "0"
+        return response
+    
+    def _error_response(self, error_message, login_base):
+        """Return an error page that redirects to login with error message."""
+        import html as html_module
+        import json
+        
+        error_url = f"{login_base}?google_auth=error&message={html_module.escape(error_message)}"
+        url_js = json.dumps(error_url)
+        
+        html = f"""<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Login Error</title>
+  </head>
+  <body style="background:#0a0a0a;color:#fff;font-family:sans-serif;display:flex;justify-content:center;align-items:center;height:100vh;margin:0;">
+    <div style="text-align:center;max-width:500px;padding:20px;">
+      <h1 style="color:#ef4444;margin-bottom:20px;">Login Failed</h1>
+      <p style="margin-bottom:20px;color:#fca5a5;">{html_module.escape(error_message)}</p>
+      <p style="margin-top:20px;font-size:12px;">
+        <a id="redirect-link" href="{html_module.escape(error_url)}" style="color:#3b82f6;">Return to login page</a>
+      </p>
+    </div>
+    <script>
+      (function() {{
+        var target = {url_js};
+        setTimeout(function() {{
+          window.location.replace(target);
+        }}, 2000);
+      }})();
+    </script>
+  </body>
+</html>"""
+        
+        response = HttpResponse(html, content_type="text/html; charset=utf-8")
+        response["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
         return response
 
 

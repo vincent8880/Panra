@@ -23,7 +23,15 @@ export default function LoginPage() {
       // Refresh the page to get updated user state, then redirect
       window.location.href = '/'
     } else if (googleAuth === 'error') {
-      setError('Google authentication failed. Please try again or use email/password login.')
+      const reason = searchParams?.get('reason')
+      const message = searchParams?.get('message')
+      if (message) {
+        setError(decodeURIComponent(message))
+      } else if (reason) {
+        setError(`Google authentication failed: ${reason}. Please try again or use email/password login.`)
+      } else {
+        setError('Google authentication failed. Please try again or use email/password login.')
+      }
     }
   }, [searchParams, router])
 
