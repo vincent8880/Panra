@@ -87,38 +87,40 @@ export function TradeModal({ market, isOpen, initialSide, onClose }: TradeModalP
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50">
-      <div className="w-full sm:max-w-md bg-pm-bg-card border-t sm:border border-pm-border rounded-t-2xl sm:rounded-2xl p-4 sm:p-6 shadow-xl">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm">
+      <div className="w-full sm:max-w-md bg-pm-bg-card border-t sm:border sm:rounded-xl border-pm-border p-5 sm:p-6 shadow-2xl">
         {/* Drag handle for mobile */}
-        <div className="flex justify-center mb-2 sm:hidden">
-          <div className="h-1 w-10 rounded-full bg-pm-border" />
+        <div className="flex justify-center mb-4 sm:hidden">
+          <div className="h-1 w-12 rounded-full bg-pm-border/60" />
         </div>
 
-        {/* Header */}
-        <div className="flex items-start justify-between mb-3">
-          <div>
-            <p className="text-xs text-pm-text-secondary mb-1">Place order on</p>
-            <h2 className="text-sm font-semibold text-pm-text-primary line-clamp-2">
+        {/* Header - Polymarket style: compact and clean */}
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex-1 pr-4">
+            <p className="text-[11px] text-pm-text-secondary mb-0.5 uppercase tracking-wide">Place order on</p>
+            <h2 className="text-sm font-semibold text-pm-text-primary leading-tight line-clamp-2">
               {market.title}
             </h2>
           </div>
           <button
             onClick={handleClose}
-            className="p-1 text-pm-text-secondary hover:text-pm-text-primary"
+            className="flex-shrink-0 p-1.5 text-pm-text-secondary hover:text-pm-text-primary hover:bg-pm-bg-secondary rounded transition-colors"
           >
             <span className="sr-only">Close</span>
-            ✕
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
           </button>
         </div>
 
-        {/* Side selection */}
-        <div className="grid grid-cols-2 gap-2 mb-4">
+        {/* Side selection - Polymarket style: larger, more prominent */}
+        <div className="grid grid-cols-2 gap-2.5 mb-5">
           <button
             type="button"
             onClick={() => setSide('yes')}
-            className={`py-2 px-3 rounded-lg text-xs font-semibold transition-all duration-200 ${
+            className={`py-3 px-4 rounded-lg text-sm font-semibold transition-all duration-200 ${
               side === 'yes'
-                ? 'bg-pm-green text-white shadow-lg shadow-pm-green/20 border border-pm-green'
+                ? 'bg-pm-green text-white shadow-md shadow-pm-green/20'
                 : 'bg-pm-green/10 text-pm-green/70 border border-pm-green/30 hover:bg-pm-green/20 hover:text-pm-green hover:border-pm-green/50'
             }`}
           >
@@ -127,9 +129,9 @@ export function TradeModal({ market, isOpen, initialSide, onClose }: TradeModalP
           <button
             type="button"
             onClick={() => setSide('no')}
-            className={`py-2 px-3 rounded-lg text-xs font-semibold transition-all duration-200 ${
+            className={`py-3 px-4 rounded-lg text-sm font-semibold transition-all duration-200 ${
               side === 'no'
-                ? 'bg-pm-red text-white shadow-lg shadow-pm-red/20 border border-pm-red'
+                ? 'bg-pm-red text-white shadow-md shadow-pm-red/20'
                 : 'bg-pm-red/10 text-pm-red/70 border border-pm-red/30 hover:bg-pm-red/20 hover:text-pm-red hover:border-pm-red/50'
             }`}
           >
@@ -137,25 +139,25 @@ export function TradeModal({ market, isOpen, initialSide, onClose }: TradeModalP
           </button>
         </div>
 
-        {/* Auth required prompt */}
+        {/* Auth required prompt - Polymarket style: subtle */}
         {authRequired && (
-          <div className="mb-3 border border-pm-border rounded-lg bg-pm-bg-secondary p-3 text-xs">
+          <div className="mb-4 border border-pm-border/50 rounded-lg bg-pm-bg-secondary/50 p-3 text-xs">
             <p className="text-pm-text-primary font-medium mb-1">
               You need an account to place trades.
             </p>
-            <p className="text-pm-text-secondary mb-2">
+            <p className="text-pm-text-secondary mb-3 text-[11px]">
               Login or create a free account to continue.
             </p>
             <div className="flex gap-2">
               <button
                 onClick={() => router.push('/login')}
-                className="flex-1 py-1.5 px-2 rounded-md text-xs font-semibold bg-pm-blue text-white hover:bg-pm-blue-dark"
+                className="flex-1 py-2 px-3 rounded-md text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white transition-all duration-200"
               >
                 Login
               </button>
               <button
                 onClick={() => router.push('/signup')}
-                className="flex-1 py-1.5 px-2 rounded-md text-xs font-semibold bg-pm-bg-primary text-pm-text-primary border border-pm-border hover:bg-pm-bg-secondary"
+                className="flex-1 py-2 px-3 rounded-md text-xs font-semibold bg-pm-bg-secondary hover:bg-pm-bg-card text-pm-text-primary border border-pm-border transition-all duration-200"
               >
                 Sign up
               </button>
@@ -164,16 +166,16 @@ export function TradeModal({ market, isOpen, initialSide, onClose }: TradeModalP
         )}
 
         {error && (
-          <div className="mb-3 text-xs text-red-400 bg-red-950/40 border border-red-800 rounded px-2 py-1.5">
+          <div className="mb-4 text-xs text-red-400 bg-red-950/30 border border-red-800/50 rounded-lg px-3 py-2">
             {error}
           </div>
         )}
 
-        {/* Order form */}
+        {/* Order form - Polymarket style: clean and compact */}
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Stake (points) + quick buttons */}
           <div>
-            <label className="block text-sm font-medium text-pm-text-primary mb-2">
+            <label className="block text-xs font-medium text-pm-text-secondary mb-2 uppercase tracking-wide">
               How many points do you want to stake?
             </label>
             <input
@@ -182,8 +184,8 @@ export function TradeModal({ market, isOpen, initialSide, onClose }: TradeModalP
               min="1"
               value={quantity}
               onChange={(e) => setQuantity(e.target.value)}
-              placeholder="Enter amount"
-              className="pm-input w-full text-base py-3 mb-3"
+              placeholder="0"
+              className="pm-input w-full text-lg font-semibold py-3.5 mb-3 text-center"
             />
             <div className="flex flex-wrap gap-2">
               {[10, 50, 100, 500].map((amount) => (
@@ -191,7 +193,7 @@ export function TradeModal({ market, isOpen, initialSide, onClose }: TradeModalP
                   key={amount}
                   type="button"
                   onClick={() => setQuantity(amount.toString())}
-                  className="px-4 py-2 text-sm font-medium bg-pm-bg-secondary hover:bg-pm-bg-card text-pm-text-primary border border-pm-border rounded-lg transition-colors"
+                  className="px-3 py-1.5 text-xs font-medium bg-pm-bg-secondary hover:bg-pm-bg-card text-pm-text-primary border border-pm-border rounded-md transition-all duration-200"
                 >
                   {amount} pts
                 </button>
@@ -199,23 +201,23 @@ export function TradeModal({ market, isOpen, initialSide, onClose }: TradeModalP
             </div>
           </div>
 
-          {/* Cost summary */}
+          {/* Cost summary - Polymarket style: minimal and clean */}
           {quantity && parseFloat(quantity) >= 1 && (
-            <div className="bg-pm-bg-secondary border border-pm-border rounded-lg p-3 space-y-1">
-              <div className="flex justify-between text-sm">
+            <div className="bg-pm-bg-secondary/50 border border-pm-border/50 rounded-lg p-3 space-y-2">
+              <div className="flex justify-between text-xs">
                 <span className="text-pm-text-secondary">Price per share</span>
                 <span className="font-medium text-pm-text-primary">
-                  {(currentPrice * 100).toFixed(1)}% implied
+                  {(currentPrice * 100).toFixed(1)}%
                 </span>
               </div>
-              <div className="flex justify-between text-sm">
+              <div className="flex justify-between text-xs">
                 <span className="text-pm-text-secondary">Total cost</span>
                 <span className="font-semibold text-pm-text-primary">
                   {(currentPrice * parseFloat(quantity || '0')).toFixed(2)} pts
                 </span>
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-pm-text-secondary">Max payout (if correct)</span>
+              <div className="flex justify-between text-xs">
+                <span className="text-pm-text-secondary">Max payout</span>
                 <span className="font-semibold text-pm-text-primary">
                   {parseFloat(quantity || '0').toFixed(2)} pts
                 </span>
@@ -223,15 +225,15 @@ export function TradeModal({ market, isOpen, initialSide, onClose }: TradeModalP
             </div>
           )}
 
-          {/* Submit */}
+          {/* Submit - Polymarket style: large, prominent button */}
           <button
             type="submit"
             disabled={loading || !quantity || parseFloat(quantity) < 1}
-            className={`w-full py-3 rounded-lg text-base font-semibold mt-2 transition-all duration-200 ${
+            className={`w-full py-3.5 rounded-lg text-sm font-semibold mt-4 transition-all duration-200 ${
               side === 'yes'
-                ? 'bg-pm-green hover:bg-pm-green/90 text-white'
-                : 'bg-pm-red hover:bg-pm-red/90 text-white'
-            } disabled:opacity-50 disabled:cursor-not-allowed`}
+                ? 'bg-pm-green hover:bg-pm-green/90 text-white shadow-md shadow-pm-green/20'
+                : 'bg-pm-red hover:bg-pm-red/90 text-white shadow-md shadow-pm-red/20'
+            } disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-opacity-50`}
           >
             {loading ? 'Placing order…' : `Stake ${side.toUpperCase()}`}
           </button>
