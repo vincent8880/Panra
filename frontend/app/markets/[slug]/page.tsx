@@ -108,12 +108,12 @@ export default function MarketDetailPage() {
                     setTradeSide('yes')
                     setTradeOpen(true)
                   }}
-                  className="group flex flex-col items-start justify-between p-4 rounded-xl border border-pm-border bg-pm-bg-secondary transition-all cursor-pointer hover:border-pm-green/50 hover:bg-pm-green/5 hover:shadow-lg hover:shadow-pm-green/10"
+                  className="group flex flex-col items-start justify-between p-4 rounded-xl border border-pm-green/30 bg-pm-green/10 transition-all duration-200 cursor-pointer hover:border-pm-green/60 hover:bg-pm-green/20"
                 >
-                  <span className="text-xs text-pm-text-secondary font-medium mb-1 group-hover:text-pm-green transition-colors">
+                  <span className="text-xs text-pm-green/70 font-medium mb-1 group-hover:text-pm-green transition-colors">
                     YES
                   </span>
-                  <span className="text-2xl font-bold text-pm-green/60 group-hover:text-pm-green transition-colors">
+                  <span className="text-2xl font-bold text-pm-green/70 group-hover:text-pm-green transition-colors">
                     {(parseFloat(market.yes_price) * 100).toFixed(1)}%
                   </span>
                   <span className="text-[11px] text-pm-text-secondary">
@@ -125,12 +125,12 @@ export default function MarketDetailPage() {
                     setTradeSide('no')
                     setTradeOpen(true)
                   }}
-                  className="group flex flex-col items-start justify-between p-4 rounded-xl border border-pm-border bg-pm-bg-secondary transition-all cursor-pointer hover:border-pm-red/50 hover:bg-pm-red/5 hover:shadow-lg hover:shadow-pm-red/10"
+                  className="group flex flex-col items-start justify-between p-4 rounded-xl border border-pm-red/30 bg-pm-red/10 transition-all duration-200 cursor-pointer hover:border-pm-red/60 hover:bg-pm-red/20"
                 >
-                  <span className="text-xs text-pm-text-secondary font-medium mb-1 group-hover:text-pm-red transition-colors">
+                  <span className="text-xs text-pm-red/70 font-medium mb-1 group-hover:text-pm-red transition-colors">
                     NO
                   </span>
-                  <span className="text-2xl font-bold text-pm-red/60 group-hover:text-pm-red transition-colors">
+                  <span className="text-2xl font-bold text-pm-red/70 group-hover:text-pm-red transition-colors">
                     {(parseFloat(market.no_price) * 100).toFixed(1)}%
                   </span>
                   <span className="text-[11px] text-pm-text-secondary">
