@@ -227,11 +227,11 @@ export function TradeModal({ market, isOpen, initialSide, onClose }: TradeModalP
           <button
             type="submit"
             disabled={loading || !quantity || parseFloat(quantity) < 1}
-            className={`w-full py-3 rounded-lg text-base font-semibold mt-2 ${
+            className={`w-full py-3 rounded-lg text-base font-semibold mt-2 transition-all duration-200 ${
               side === 'yes'
-                ? 'bg-pm-green hover:bg-pm-green-dark text-white'
-                : 'bg-pm-red hover:bg-pm-red-dark text-white'
-            } disabled:opacity-50 disabled:cursor-not-allowed transition-colors`}
+                ? 'bg-pm-green hover:bg-pm-green/90 text-white'
+                : 'bg-pm-red hover:bg-pm-red/90 text-white'
+            } disabled:opacity-50 disabled:cursor-not-allowed`}
           >
             {loading ? 'Placing order…' : `Stake ${side.toUpperCase()}`}
           </button>
