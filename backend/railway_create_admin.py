@@ -57,3 +57,4 @@ print(f"Total users: {User.objects.count()}")
 
 
 
+

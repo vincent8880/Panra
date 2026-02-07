@@ -167,10 +167,16 @@ class GoogleOAuthCallbackView(View):
             # Find or create user
             user = self._get_or_create_user(google_id, email, name, access_token, tokens)
             if not user:
+                logger.error("Failed to get or create user")
                 return self._redirect_response(f"{frontend_url}/login?google_auth=error")
             
             # Log the user in
             login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+            logger.info(f"User {user.username} logged in successfully, session key: {request.session.session_key}")
+            
+            # Force session save
+            request.session.save()
+            
             return self._redirect_response(f"{frontend_url}/login?google_auth=success")
 
         except Exception as e:
@@ -200,7 +206,7 @@ class GoogleOAuthCallbackView(View):
                 app.sites.add(site)
                 logger.info("Created SocialApp for google")
             
-            # Check if we have a social account for this Google ID
+            # Check if we have a social account for this Google ID (most common case - existing Google login)
             try:
                 social_account = SocialAccount.objects.get(provider='google', uid=google_id)
                 user = social_account.user
@@ -219,33 +225,68 @@ class GoogleOAuthCallbackView(View):
             except SocialAccount.DoesNotExist:
                 pass
             
-            # Check if user exists with this email
+            # Check if user exists with this email (link Google to existing email account)
             if email:
                 try:
                     user = User.objects.get(email=email)
-                    logger.info(f"Found existing user by email: {user.username}")
+                    logger.info(f"Found existing user by email: {user.username}, linking Google account")
                     
-                    # Link Google account to existing user
-                    social_account = SocialAccount.objects.create(
-                        user=user,
+                    # Use get_or_create to avoid duplicate SocialAccount errors
+                    social_account, created = SocialAccount.objects.get_or_create(
                         provider='google',
                         uid=google_id,
-                        extra_data={'email': email, 'name': name}
+                        defaults={
+                            'user': user,
+                            'extra_data': {'email': email, 'name': name}
+                        }
                     )
                     
-                    # Create token
-                    SocialToken.objects.create(
+                    # If it already existed but was linked to different user, update it
+                    if not created and social_account.user != user:
+                        logger.warning(f"SocialAccount for Google ID {google_id} was linked to different user, updating")
+                        social_account.user = user
+                        social_account.extra_data = {'email': email, 'name': name}
+                        social_account.save()
+                    
+                    # Update or create token
+                    SocialToken.objects.update_or_create(
                         account=social_account,
                         app=app,
-                        token=access_token,
-                        token_secret=tokens.get('refresh_token', ''),
+                        defaults={
+                            'token': access_token,
+                            'token_secret': tokens.get('refresh_token', ''),
+                        }
                     )
                     
                     return user
                 except User.DoesNotExist:
                     pass
+                except User.MultipleObjectsReturned:
+                    # Multiple users with same email - take the first one
+                    logger.warning(f"Multiple users with email {email}, using first one")
+                    user = User.objects.filter(email=email).first()
+                    social_account, _ = SocialAccount.objects.get_or_create(
+                        provider='google',
+                        uid=google_id,
+                        defaults={
+                            'user': user,
+                            'extra_data': {'email': email, 'name': name}
+                        }
+                    )
+                    if social_account.user != user:
+                        social_account.user = user
+                        social_account.save()
+                    SocialToken.objects.update_or_create(
+                        account=social_account,
+                        app=app,
+                        defaults={
+                            'token': access_token,
+                            'token_secret': tokens.get('refresh_token', ''),
+                        }
+                    )
+                    return user
             
-            # Create new user
+            # Create new user (first time Google login)
             username = email.split('@')[0] if email else f"google_{google_id[:8]}"
             
             # Make username unique
@@ -301,13 +342,39 @@ class GoogleOAuthCallbackView(View):
     <meta charset="utf-8" />
     <meta http-equiv="refresh" content="0;url={url_html}" />
     <title>Redirecting…</title>
+    <script>
+      // Immediate redirect - try multiple methods
+      (function() {{
+        var target = {url_js};
+        // Try replace first (doesn't add to history)
+        try {{
+          window.location.replace(target);
+        }} catch (e) {{
+          // Fallback to href
+          window.location.href = target;
+        }}
+        // Backup: if still here after 100ms, force redirect
+        setTimeout(function() {{
+          window.location.href = target;
+        }}, 100);
+        // Last resort: if still here after 500ms, use top-level
+        setTimeout(function() {{
+          if (window.top) {{
+            window.top.location = target;
+          }} else {{
+            window.location = target;
+          }}
+        }}, 500);
+      }})();
+    </script>
   </head>
   <body style="background:#0a0a0a;color:#fff;font-family:sans-serif;display:flex;justify-content:center;align-items:center;height:100vh;margin:0;">
     <div style="text-align:center;">
-      <p>Redirecting…</p>
-      <p style="margin-top:12px;font-size:12px;"><a href="{url_html}" style="color:#3b82f6;">Click here</a></p>
+      <p>Login successful! Redirecting…</p>
+      <p style="margin-top:20px;">
+        <a href="{url_html}" style="color:#3b82f6;text-decoration:underline;font-size:16px;font-weight:500;">Click here if you're not redirected automatically</a>
+      </p>
     </div>
-    <script>window.location.replace({url_js});</script>
   </body>
 </html>"""
 
