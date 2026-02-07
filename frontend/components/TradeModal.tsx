@@ -121,7 +121,7 @@ export function TradeModal({ market, isOpen, initialSide, onClose }: TradeModalP
             className={`py-3 px-4 rounded-lg text-sm font-semibold transition-all duration-200 ${
               side === 'yes'
                 ? 'bg-pm-green text-white shadow-md shadow-pm-green/20'
-                : 'bg-pm-green/10 text-pm-green/70 border border-pm-green/30 hover:bg-pm-green/20 hover:text-pm-green hover:border-pm-green/50'
+                : 'bg-pm-bg-secondary text-pm-text-secondary border border-pm-border hover:bg-pm-green/10 hover:text-pm-green/80 hover:border-pm-green/40'
             }`}
           >
             YES {(parseFloat(market.yes_price) * 100).toFixed(1)}%
@@ -132,7 +132,7 @@ export function TradeModal({ market, isOpen, initialSide, onClose }: TradeModalP
             className={`py-3 px-4 rounded-lg text-sm font-semibold transition-all duration-200 ${
               side === 'no'
                 ? 'bg-pm-red text-white shadow-md shadow-pm-red/20'
-                : 'bg-pm-red/10 text-pm-red/70 border border-pm-red/30 hover:bg-pm-red/20 hover:text-pm-red hover:border-pm-red/50'
+                : 'bg-pm-bg-secondary text-pm-text-secondary border border-pm-border hover:bg-pm-red/10 hover:text-pm-red/80 hover:border-pm-red/40'
             }`}
           >
             NO {(parseFloat(market.no_price) * 100).toFixed(1)}%
