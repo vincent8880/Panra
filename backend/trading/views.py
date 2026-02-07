@@ -5,6 +5,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
 from decimal import Decimal
 from .models import Order, Trade, Position
 from .serializers import OrderSerializer, TradeSerializer, PositionSerializer
@@ -12,8 +14,12 @@ from markets.models import Market
 from .matching import match_orders
 
 
+@method_decorator(csrf_exempt, name='dispatch')
 class OrderViewSet(viewsets.ModelViewSet):
-    """Order viewset for creating and managing orders."""
+    """Order viewset for creating and managing orders.
+    
+    CSRF exempt because we use JWT token authentication for API requests.
+    """
     serializer_class = OrderSerializer
     permission_classes = [IsAuthenticated]
     
