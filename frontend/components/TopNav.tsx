@@ -78,9 +78,20 @@ export function TopNav() {
               </>
             )}
             {(!user && !loading) && (
-              <Link href="/login" className="btn-primary text-sm">
-                Login / Sign up
-              </Link>
+              <div className="flex items-center gap-3">
+                <Link 
+                  href="/login" 
+                  className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm transition-colors"
+                >
+                  Log In
+                </Link>
+                <Link 
+                  href="/signup" 
+                  className="px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white font-medium text-sm transition-colors"
+                >
+                  Sign Up
+                </Link>
+              </div>
             )}
           </div>
         </div>
