@@ -335,63 +335,40 @@ class GoogleOAuthCallbackView(View):
             return None
     
     def _redirect_response(self, url):
-        """Return a tiny HTML page that immediately redirects via JavaScript.
-
-        We use this instead of an HTTP 302 to avoid the corrupted-content issue
-        we've seen with redirects through the Railway proxy.
+        """Simpler redirect without complex escaping.
+        
+        Uses proper escaping to prevent XSS while keeping the code simple.
         """
         import html as html_module
         import json
 
+        # Escape URL for HTML (prevents XSS)
         url_html = html_module.escape(url)
+        # Escape URL for JavaScript (prevents XSS)
         url_js = json.dumps(url)
 
         html = f"""<!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="utf-8" />
-    <meta http-equiv="refresh" content="0;url={url_html}" />
-    <title>Redirecting…</title>
-    <script>
-      // Immediate redirect - try multiple methods
-      (function() {{
-        var target = {url_js};
-        // Try replace first (doesn't add to history)
-        try {{
-          window.location.replace(target);
-        }} catch (e) {{
-          // Fallback to href
-          window.location.href = target;
-        }}
-        // Backup: if still here after 100ms, force redirect
-        setTimeout(function() {{
-          window.location.href = target;
-        }}, 100);
-        // Last resort: if still here after 500ms, use top-level
-        setTimeout(function() {{
-          if (window.top) {{
-            window.top.location = target;
-          }} else {{
-            window.location = target;
-          }}
-        }}, 500);
-      }})();
-    </script>
-  </head>
-  <body style="background:#0a0a0a;color:#fff;font-family:sans-serif;display:flex;justify-content:center;align-items:center;height:100vh;margin:0;">
+<head>
+    <meta charset="utf-8">
+    <title>Redirecting...</title>
+</head>
+<body style="background:#0a0a0a;color:#fff;font-family:sans-serif;display:flex;justify-content:center;align-items:center;height:100vh;margin:0;">
     <div style="text-align:center;">
-      <p>Login successful! Redirecting…</p>
-      <p style="margin-top:20px;">
-        <a href="{url_html}" style="color:#3b82f6;text-decoration:underline;font-size:16px;font-weight:500;">Click here if you're not redirected automatically</a>
-      </p>
+        <p>Login successful! Redirecting…</p>
+        <p style="margin-top:20px;">
+            <a href="{url_html}" id="fallback-link" style="color:#3b82f6;text-decoration:underline;">Click here if you're not redirected automatically</a>
+        </p>
     </div>
-  </body>
+    <script>
+        console.log("Redirecting to:", {url_js});
+        window.location.href = {url_js};
+    </script>
+</body>
 </html>"""
 
         response = HttpResponse(html, content_type="text/html; charset=utf-8")
-        response["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
-        response["Pragma"] = "no-cache"
-        response["Expires"] = "0"
+        response["Cache-Control"] = "no-store"
         return response
     
 
