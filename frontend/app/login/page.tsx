@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { authApi } from 'lib/api'
+import { authApi, tokenStorage } from 'lib/api'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -18,10 +18,19 @@ export default function LoginPage() {
   // Check for Google auth callback
   useEffect(() => {
     const googleAuth = searchParams?.get('google_auth')
+    const token = searchParams?.get('token')
+    
     if (googleAuth === 'success') {
-      // User successfully logged in via Google
-      // Refresh the page to get updated user state, then redirect
-      window.location.href = '/'
+      // Extract and store JWT token from URL
+      if (token) {
+        tokenStorage.set(token)
+        // Remove token from URL for security
+        const url = new URL(window.location.href)
+        url.searchParams.delete('token')
+        window.history.replaceState({}, '', url.toString())
+      }
+      // Redirect to home
+      router.push('/')
     } else if (googleAuth === 'error') {
       const reason = searchParams?.get('reason')
       const message = searchParams?.get('message')

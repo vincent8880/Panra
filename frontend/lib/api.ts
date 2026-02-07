@@ -2,13 +2,56 @@ import axios from 'axios'
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001/api'
 
+// Token storage utilities
+const TOKEN_KEY = 'auth_token'
+
+export const tokenStorage = {
+  get: (): string | null => {
+    if (typeof window === 'undefined') return null
+    return localStorage.getItem(TOKEN_KEY)
+  },
+  set: (token: string): void => {
+    if (typeof window === 'undefined') return
+    localStorage.setItem(TOKEN_KEY, token)
+  },
+  remove: (): void => {
+    if (typeof window === 'undefined') return
+    localStorage.removeItem(TOKEN_KEY)
+  },
+}
+
 const api = axios.create({
   baseURL: API_BASE_URL,
-  withCredentials: true,
+  withCredentials: true, // Still needed for session-based auth (email/password)
   headers: {
     'Content-Type': 'application/json',
   },
 })
+
+// Add token to requests if available
+api.interceptors.request.use((config) => {
+  const token = tokenStorage.get()
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
+})
+
+// Handle 401 errors (token expired)
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Token expired or invalid, clear it
+      tokenStorage.remove()
+      // Redirect to login if not already there
+      if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+        window.location.href = '/login'
+      }
+    }
+    return Promise.reject(error)
+  }
+)
 
 export interface Market {
   id: number
@@ -203,16 +246,23 @@ export const authApi = {
   },
 
   logout: async () => {
-    const csrfToken = await authApi.getCsrf()
-    await api.post(
-      '/auth/logout/',
-      {},
-      {
-        headers: {
-          'X-CSRFToken': csrfToken,
-        },
-      }
-    )
+    // Clear token
+    tokenStorage.remove()
+    // Also call backend logout (for session-based auth)
+    try {
+      const csrfToken = await authApi.getCsrf()
+      await api.post(
+        '/auth/logout/',
+        {},
+        {
+          headers: {
+            'X-CSRFToken': csrfToken,
+          },
+        }
+      )
+    } catch {
+      // Ignore errors
+    }
   },
 
   getGoogleAuthUrl: async () => {

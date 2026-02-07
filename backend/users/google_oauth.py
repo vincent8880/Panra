@@ -1,17 +1,21 @@
 """
 Custom Google OAuth implementation that bypasses allauth's redirect mechanism.
 This avoids the "Corrupted Content Error" by returning clean HTML responses.
+Uses token-based authentication instead of session cookies for cross-domain support.
 """
 import requests
 import logging
 from django.conf import settings
 from django.contrib.auth import login
 from django.http import HttpResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
 from django.views import View
 from decouple import config
 from allauth.socialaccount.models import SocialApp, SocialAccount, SocialToken
 from allauth.socialaccount.providers.google.provider import GoogleProvider
 from users.models import User
+from users.jwt_utils import generate_jwt_token
 
 logger = logging.getLogger(__name__)
 
@@ -113,8 +117,12 @@ class GoogleOAuthStartView(View):
         return HttpResponse(html, content_type='text/html; charset=utf-8')
 
 
+@method_decorator(csrf_exempt, name='dispatch')
 class GoogleOAuthCallbackView(View):
-    """Handle the Google OAuth callback and then send user back to the frontend."""
+    """Handle the Google OAuth callback and then send user back to the frontend.
+    
+    CSRF exempt because this is called by Google (external service).
+    """
 
     def get(self, request):
         code = request.GET.get('code')
@@ -170,14 +178,16 @@ class GoogleOAuthCallbackView(View):
                 logger.error("Failed to get or create user")
                 return self._redirect_response(f"{frontend_url}/login?google_auth=error")
             
-            # Log the user in
-            login(request, user, backend='django.contrib.auth.backends.ModelBackend')
-            logger.info(f"User {user.username} logged in successfully, session key: {request.session.session_key}")
+            # Generate JWT token for token-based auth (works cross-domain)
+            jwt_token = generate_jwt_token(user)
+            logger.info(f"User {user.username} authenticated, JWT token generated")
             
-            # Force session save
+            # Also create session for backward compatibility (email/password login still uses sessions)
+            login(request, user, backend='django.contrib.auth.backends.ModelBackend')
             request.session.save()
             
-            return self._redirect_response(f"{frontend_url}/login?google_auth=success")
+            # Redirect with token in URL (frontend will extract and store it)
+            return self._redirect_response(f"{frontend_url}/login?google_auth=success&token={jwt_token}")
 
         except Exception as e:
             logger.exception(f"OAuth error: {e}")
