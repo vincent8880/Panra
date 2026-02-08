@@ -229,6 +229,10 @@ export const authApi = {
         },
       }
     )
+    // Store JWT token if provided
+    if (response.data.token) {
+      tokenStorage.set(response.data.token)
+    }
     return response.data
   },
 
