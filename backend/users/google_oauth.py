@@ -42,8 +42,12 @@ def get_google_credentials():
         return client_id, secret
 
 
+@method_decorator(csrf_exempt, name='dispatch')
 class GoogleOAuthStartView(View):
-    """Start the Google OAuth flow."""
+    """Start the Google OAuth flow.
+    
+    CSRF exempt because this is called from the frontend and redirects to Google.
+    """
     
     def get(self, request):
         import html as html_module
@@ -150,6 +154,7 @@ class GoogleOAuthCallbackView(View):
             )
 
             if token_response.status_code != 200:
+                logger.error(f"Token exchange failed: {token_response.status_code} - {token_response.text}")
                 return self._redirect_response(f"{frontend_url}/login?google_auth=error")
 
             tokens = token_response.json()
@@ -163,6 +168,7 @@ class GoogleOAuthCallbackView(View):
             )
 
             if userinfo_response.status_code != 200:
+                logger.error(f"Userinfo fetch failed: {userinfo_response.status_code} - {userinfo_response.text}")
                 return self._redirect_response(f"{frontend_url}/login?google_auth=error")
 
             userinfo = userinfo_response.json()
@@ -178,19 +184,21 @@ class GoogleOAuthCallbackView(View):
                 logger.error("Failed to get or create user")
                 return self._redirect_response(f"{frontend_url}/login?google_auth=error")
             
-            # Generate JWT tokens using simplejwt (access + refresh token)
+            # Generate JWT token for API authentication
             from rest_framework_simplejwt.tokens import RefreshToken
             refresh = RefreshToken.for_user(user)
-            access_token = str(refresh.access_token)
-            logger.info(f"User {user.username} authenticated, JWT tokens generated")
+            jwt_token = str(refresh.access_token)
+            
+            logger.info(f"User {user.username} logged in successfully, generated JWT token")
             
             # Also create session for backward compatibility (email/password login still uses sessions)
             login(request, user, backend='django.contrib.auth.backends.ModelBackend')
             request.session.save()
             
-            # Redirect with access token in URL (frontend will extract and store it)
-            # Note: We only pass the access token, not the refresh token (for security)
-            return self._redirect_response(f"{frontend_url}/login?google_auth=success&token={access_token}")
+            # Redirect with token
+            return self._redirect_response(
+                f"{frontend_url}/login?google_auth=success&token={jwt_token}"
+            )
 
         except Exception as e:
             logger.exception(f"OAuth error: {e}")
