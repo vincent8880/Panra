@@ -103,10 +103,15 @@ class LoginView(APIView):
         # Log the user in (creates session)
         login(request, user)
         
-        # Generate JWT tokens using simplejwt
-        from rest_framework_simplejwt.tokens import RefreshToken
-        refresh = RefreshToken.for_user(user)
-        access_token = str(refresh.access_token)
+        # Generate JWT tokens using simplejwt (lazy import)
+        try:
+            from rest_framework_simplejwt.tokens import RefreshToken
+            refresh = RefreshToken.for_user(user)
+            access_token = str(refresh.access_token)
+        except ImportError:
+            # Fallback if simplejwt not installed yet (during deployment)
+            logger.warning("rest_framework_simplejwt not installed, skipping JWT token generation")
+            access_token = None
         
         # Serialize user data
         serializer = UserSerializer(user)
@@ -165,10 +170,15 @@ class SignupView(APIView):
         # Optionally log them in immediately
         login(request, user)
         
-        # Generate JWT tokens using simplejwt
-        from rest_framework_simplejwt.tokens import RefreshToken
-        refresh = RefreshToken.for_user(user)
-        access_token = str(refresh.access_token)
+        # Generate JWT tokens using simplejwt (lazy import)
+        try:
+            from rest_framework_simplejwt.tokens import RefreshToken
+            refresh = RefreshToken.for_user(user)
+            access_token = str(refresh.access_token)
+        except ImportError:
+            # Fallback if simplejwt not installed yet (during deployment)
+            logger.warning("rest_framework_simplejwt not installed, skipping JWT token generation")
+            access_token = None
 
         serializer = UserSerializer(user)
         response_data = serializer.data

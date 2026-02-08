@@ -208,11 +208,21 @@ if os.getenv('RAILWAY_ENVIRONMENT') or os.getenv('RAILWAY_PROJECT_ID'):
     ACCOUNT_DEFAULT_HTTP_PROTOCOL = 'https'
 
 # REST Framework
-REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [
+# Try to use simplejwt, fallback to session auth if not installed
+try:
+    from rest_framework_simplejwt.authentication import JWTAuthentication
+    DEFAULT_AUTH_CLASSES = [
         'rest_framework_simplejwt.authentication.JWTAuthentication',  # JWT token-based auth
         'rest_framework.authentication.SessionAuthentication',  # Session auth (for email/password)
-    ],
+    ]
+except ImportError:
+    # Fallback during deployment before package is installed
+    DEFAULT_AUTH_CLASSES = [
+        'rest_framework.authentication.SessionAuthentication',  # Session auth only
+    ]
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': DEFAULT_AUTH_CLASSES,
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticatedOrReadOnly',
     ],
@@ -220,20 +230,24 @@ REST_FRAMEWORK = {
     'PAGE_SIZE': 20,
 }
 
-# SimpleJWT Configuration
-from datetime import timedelta
-SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(days=7),  # Access token valid for 7 days
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=30),  # Refresh token valid for 30 days
-    'ROTATE_REFRESH_TOKENS': True,  # Generate new refresh token on each refresh
-    'BLACKLIST_AFTER_ROTATION': True,  # Blacklist old refresh tokens
-    'ALGORITHM': 'HS256',
-    'SIGNING_KEY': SECRET_KEY,
-    'AUTH_HEADER_TYPES': ('Bearer',),
-    'AUTH_HEADER_NAME': 'HTTP_AUTHORIZATION',
-    'USER_ID_FIELD': 'id',
-    'USER_ID_CLAIM': 'user_id',
-}
+# SimpleJWT Configuration (only if package is installed)
+try:
+    from datetime import timedelta
+    SIMPLE_JWT = {
+        'ACCESS_TOKEN_LIFETIME': timedelta(days=7),  # Access token valid for 7 days
+        'REFRESH_TOKEN_LIFETIME': timedelta(days=30),  # Refresh token valid for 30 days
+        'ROTATE_REFRESH_TOKENS': True,  # Generate new refresh token on each refresh
+        'BLACKLIST_AFTER_ROTATION': True,  # Blacklist old refresh tokens
+        'ALGORITHM': 'HS256',
+        'SIGNING_KEY': SECRET_KEY,
+        'AUTH_HEADER_TYPES': ('Bearer',),
+        'AUTH_HEADER_NAME': 'HTTP_AUTHORIZATION',
+        'USER_ID_FIELD': 'id',
+        'USER_ID_CLAIM': 'user_id',
+    }
+except ImportError:
+    # Package not installed yet, will be available after pip install
+    pass
 
 # CORS settings
 # Allow frontend origin from environment variable (Railway will set this)

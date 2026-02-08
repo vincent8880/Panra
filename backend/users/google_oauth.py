@@ -15,7 +15,7 @@ from decouple import config
 from allauth.socialaccount.models import SocialApp, SocialAccount, SocialToken
 from allauth.socialaccount.providers.google.provider import GoogleProvider
 from users.models import User
-from rest_framework_simplejwt.tokens import RefreshToken
+# Lazy import - only import when needed (after package is installed)
 
 logger = logging.getLogger(__name__)
 
@@ -179,6 +179,7 @@ class GoogleOAuthCallbackView(View):
                 return self._redirect_response(f"{frontend_url}/login?google_auth=error")
             
             # Generate JWT tokens using simplejwt (access + refresh token)
+            from rest_framework_simplejwt.tokens import RefreshToken
             refresh = RefreshToken.for_user(user)
             access_token = str(refresh.access_token)
             logger.info(f"User {user.username} authenticated, JWT tokens generated")

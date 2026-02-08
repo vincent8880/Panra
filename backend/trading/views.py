@@ -8,7 +8,7 @@ from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from decimal import Decimal
-from rest_framework_simplejwt.authentication import JWTAuthentication
+# Lazy import - only import when needed (after package is installed)
 from .models import Order, Trade, Position
 from .serializers import OrderSerializer, TradeSerializer, PositionSerializer
 from markets.models import Market
@@ -24,7 +24,16 @@ class OrderViewSet(viewsets.ModelViewSet):
     """
     serializer_class = OrderSerializer
     permission_classes = [IsAuthenticated]
-    authentication_classes = [JWTAuthentication]  # Only JWT, no session auth (avoids CSRF)
+    
+    def get_authenticators(self):
+        """Lazy load JWT authentication to avoid import errors during deployment."""
+        try:
+            from rest_framework_simplejwt.authentication import JWTAuthentication
+            return [JWTAuthentication()]
+        except ImportError:
+            # Fallback during deployment
+            from rest_framework.authentication import SessionAuthentication
+            return [SessionAuthentication()]
     
     def get_queryset(self):
         return Order.objects.filter(user=self.request.user)
