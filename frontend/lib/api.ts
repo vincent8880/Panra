@@ -119,6 +119,7 @@ export interface AuthResponse {
   current_credits: number
   credit_status: CreditStatus
   date_joined: string
+  token?: string  // JWT token for API authentication
 }
 
 export const marketsApi = {
@@ -242,6 +243,10 @@ export const authApi = {
         },
       }
     )
+    // Store JWT token if provided
+    if (response.data.token) {
+      tokenStorage.set(response.data.token)
+    }
     return response.data
   },
 

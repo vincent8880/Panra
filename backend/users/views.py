@@ -70,10 +70,13 @@ class CsrfView(APIView):
 class LoginView(APIView):
     """
     Email/username + password login using Django sessions.
+    Also returns JWT token for API authentication.
     """
     permission_classes = [AllowAny]
 
     def post(self, request, *args, **kwargs):
+        from .jwt_utils import generate_jwt_token
+        
         username = request.data.get('username') or request.data.get('email')
         password = request.data.get('password')
 
@@ -102,9 +105,15 @@ class LoginView(APIView):
         # Log the user in (creates session)
         login(request, user)
         
+        # Generate JWT token for API authentication
+        jwt_token = generate_jwt_token(user)
+        
         # Serialize user data
         serializer = UserSerializer(user)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        response_data = serializer.data
+        response_data['token'] = jwt_token  # Include token in response
+        
+        return Response(response_data, status=status.HTTP_200_OK)
 
 
 class LogoutView(APIView):
@@ -155,9 +164,16 @@ class SignupView(APIView):
 
         # Optionally log them in immediately
         login(request, user)
+        
+        # Generate JWT token for API authentication
+        from .jwt_utils import generate_jwt_token
+        jwt_token = generate_jwt_token(user)
 
         serializer = UserSerializer(user)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        response_data = serializer.data
+        response_data['token'] = jwt_token  # Include token in response
+        
+        return Response(response_data, status=status.HTTP_201_CREATED)
 
 
 class GoogleOAuthInitView(APIView):
