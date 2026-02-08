@@ -8,6 +8,7 @@ from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from decimal import Decimal
+from users.token_auth import JWTAuthentication
 from .models import Order, Trade, Position
 from .serializers import OrderSerializer, TradeSerializer, PositionSerializer
 from markets.models import Market
@@ -19,9 +20,11 @@ class OrderViewSet(viewsets.ModelViewSet):
     """Order viewset for creating and managing orders.
     
     CSRF exempt because we use JWT token authentication for API requests.
+    Only uses JWT authentication (no session auth) to avoid CSRF requirements.
     """
     serializer_class = OrderSerializer
     permission_classes = [IsAuthenticated]
+    authentication_classes = [JWTAuthentication]  # Only JWT, no session auth (avoids CSRF)
     
     def get_queryset(self):
         return Order.objects.filter(user=self.request.user)

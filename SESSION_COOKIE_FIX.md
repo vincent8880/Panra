@@ -44,3 +44,4 @@ Make sure these are set:
 - `FRONTEND_URL=https://panra-ke.up.railway.app` (or your frontend URL)
 - `CORS_ALLOWED_ORIGINS` (optional, auto-detected from FRONTEND_URL)
 
+

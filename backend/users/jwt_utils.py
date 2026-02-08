@@ -74,3 +74,4 @@ def verify_jwt_token(token):
         logger.exception(f"Error verifying JWT token: {e}")
         return None
 
+

@@ -33,3 +33,4 @@ class JWTAuthentication(BaseAuthentication):
         
         return (user, None)  # (user, auth) tuple
 
+
