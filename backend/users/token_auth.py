@@ -1,36 +1,9 @@
 """
 Token-based authentication for REST API.
+Using djangorestframework-simplejwt for JWT authentication.
 """
-from rest_framework.authentication import BaseAuthentication
-from rest_framework.exceptions import AuthenticationFailed
-from .jwt_utils import verify_jwt_token
-import logging
-
-logger = logging.getLogger(__name__)
-
-
-class JWTAuthentication(BaseAuthentication):
-    """
-    JWT token authentication.
-    Looks for token in Authorization header: "Bearer <token>"
-    """
-    
-    def authenticate(self, request):
-        auth_header = request.META.get('HTTP_AUTHORIZATION', '')
-        
-        if not auth_header.startswith('Bearer '):
-            return None
-        
-        token = auth_header.split('Bearer ')[1].strip()
-        
-        if not token:
-            return None
-        
-        user = verify_jwt_token(token)
-        
-        if not user:
-            raise AuthenticationFailed('Invalid or expired token')
-        
-        return (user, None)  # (user, auth) tuple
+# Note: We're now using rest_framework_simplejwt.authentication.JWTAuthentication
+# directly in settings.py, so this file is no longer needed.
+# Keeping it for backward compatibility or custom logic if needed in the future.
 
 

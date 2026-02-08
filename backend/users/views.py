@@ -75,8 +75,6 @@ class LoginView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request, *args, **kwargs):
-        from .jwt_utils import generate_jwt_token
-        
         username = request.data.get('username') or request.data.get('email')
         password = request.data.get('password')
 
@@ -105,13 +103,15 @@ class LoginView(APIView):
         # Log the user in (creates session)
         login(request, user)
         
-        # Generate JWT token for API authentication
-        jwt_token = generate_jwt_token(user)
+        # Generate JWT tokens using simplejwt
+        from rest_framework_simplejwt.tokens import RefreshToken
+        refresh = RefreshToken.for_user(user)
+        access_token = str(refresh.access_token)
         
         # Serialize user data
         serializer = UserSerializer(user)
         response_data = serializer.data
-        response_data['token'] = jwt_token  # Include token in response
+        response_data['token'] = access_token  # Include access token in response
         
         return Response(response_data, status=status.HTTP_200_OK)
 
@@ -165,13 +165,14 @@ class SignupView(APIView):
         # Optionally log them in immediately
         login(request, user)
         
-        # Generate JWT token for API authentication
-        from .jwt_utils import generate_jwt_token
-        jwt_token = generate_jwt_token(user)
+        # Generate JWT tokens using simplejwt
+        from rest_framework_simplejwt.tokens import RefreshToken
+        refresh = RefreshToken.for_user(user)
+        access_token = str(refresh.access_token)
 
         serializer = UserSerializer(user)
         response_data = serializer.data
-        response_data['token'] = jwt_token  # Include token in response
+        response_data['token'] = access_token  # Include access token in response
         
         return Response(response_data, status=status.HTTP_201_CREATED)
 

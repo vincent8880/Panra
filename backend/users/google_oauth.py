@@ -15,7 +15,7 @@ from decouple import config
 from allauth.socialaccount.models import SocialApp, SocialAccount, SocialToken
 from allauth.socialaccount.providers.google.provider import GoogleProvider
 from users.models import User
-from users.jwt_utils import generate_jwt_token
+from rest_framework_simplejwt.tokens import RefreshToken
 
 logger = logging.getLogger(__name__)
 
@@ -178,16 +178,18 @@ class GoogleOAuthCallbackView(View):
                 logger.error("Failed to get or create user")
                 return self._redirect_response(f"{frontend_url}/login?google_auth=error")
             
-            # Generate JWT token for token-based auth (works cross-domain)
-            jwt_token = generate_jwt_token(user)
-            logger.info(f"User {user.username} authenticated, JWT token generated")
+            # Generate JWT tokens using simplejwt (access + refresh token)
+            refresh = RefreshToken.for_user(user)
+            access_token = str(refresh.access_token)
+            logger.info(f"User {user.username} authenticated, JWT tokens generated")
             
             # Also create session for backward compatibility (email/password login still uses sessions)
             login(request, user, backend='django.contrib.auth.backends.ModelBackend')
             request.session.save()
             
-            # Redirect with token in URL (frontend will extract and store it)
-            return self._redirect_response(f"{frontend_url}/login?google_auth=success&token={jwt_token}")
+            # Redirect with access token in URL (frontend will extract and store it)
+            # Note: We only pass the access token, not the refresh token (for security)
+            return self._redirect_response(f"{frontend_url}/login?google_auth=success&token={access_token}")
 
         except Exception as e:
             logger.exception(f"OAuth error: {e}")

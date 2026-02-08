@@ -8,7 +8,7 @@ from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from decimal import Decimal
-from users.token_auth import JWTAuthentication
+from rest_framework_simplejwt.authentication import JWTAuthentication
 from .models import Order, Trade, Position
 from .serializers import OrderSerializer, TradeSerializer, PositionSerializer
 from markets.models import Market
