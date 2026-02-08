@@ -15,6 +15,7 @@ from markets.models import Market
 from .matching import match_orders
 
 
+@method_decorator(csrf_exempt, name='dispatch')
 class OrderViewSet(viewsets.ModelViewSet):
     """Order viewset for creating and managing orders.
     
@@ -23,11 +24,6 @@ class OrderViewSet(viewsets.ModelViewSet):
     """
     serializer_class = OrderSerializer
     permission_classes = [IsAuthenticated]
-    
-    def dispatch(self, request, *args, **kwargs):
-        """Override dispatch to exempt CSRF for JWT-authenticated requests."""
-        # Exempt CSRF for this viewset (JWT auth doesn't need CSRF)
-        return csrf_exempt(super().dispatch)(request, *args, **kwargs)
     
     def get_authenticators(self):
         """Lazy load JWT authentication to avoid import errors during deployment."""
@@ -38,6 +34,13 @@ class OrderViewSet(viewsets.ModelViewSet):
             # Fallback during deployment - but still exempt CSRF
             from rest_framework.authentication import SessionAuthentication
             return [SessionAuthentication()]
+    
+    def initial(self, request, *args, **kwargs):
+        """Override initial to ensure CSRF is bypassed."""
+        # Call parent initial
+        super().initial(request, *args, **kwargs)
+        # Explicitly mark request as CSRF exempt
+        request.csrf_processing_done = True
     
     def get_queryset(self):
         return Order.objects.filter(user=self.request.user)
