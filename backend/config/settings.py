@@ -209,8 +209,10 @@ if os.getenv('RAILWAY_ENVIRONMENT') or os.getenv('RAILWAY_PROJECT_ID'):
 
 # REST Framework
 # Try to use simplejwt, fallback to session auth if not installed
+# Check if simplejwt is available without importing (avoids AppRegistryNotReady error)
 try:
-    from rest_framework_simplejwt.authentication import JWTAuthentication
+    import importlib
+    importlib.import_module('rest_framework_simplejwt')
     DEFAULT_AUTH_CLASSES = [
         'rest_framework_simplejwt.authentication.JWTAuthentication',  # JWT token-based auth
         'rest_framework.authentication.SessionAuthentication',  # Session auth (for email/password)
