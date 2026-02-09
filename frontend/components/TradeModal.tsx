@@ -70,7 +70,7 @@ export function TradeModal({ market, isOpen, initialSide, onClose }: TradeModalP
 
       // Debug: Check token and request data
       const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
-      const requestData = {
+      const requestData: Parameters<typeof ordersApi.create>[0] = {
         market: market.id,
         side,
         order_type: 'market', // Always use market orders for simplicity
