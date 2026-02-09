@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Market, ordersApi, usersApi } from 'lib/api'
@@ -19,6 +19,8 @@ export function TradeModal({ market, isOpen, initialSide, onClose }: TradeModalP
   const [loading, setLoading] = useState(false)
   const [authRequired, setAuthRequired] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<{ cost: number; quantity: number; side: 'yes' | 'no' } | null>(null)
+  const [userCredits, setUserCredits] = useState<number | null>(null)
 
   if (!isOpen) return null
 
@@ -30,7 +32,19 @@ export function TradeModal({ market, isOpen, initialSide, onClose }: TradeModalP
     setQuantity('')
     setAuthRequired(false)
     setError(null)
+    setSuccess(null)
   }
+
+  // Fetch user credits when modal opens
+  useEffect(() => {
+    if (isOpen && !success) {
+      usersApi.getCredits().then(data => {
+        setUserCredits(data.credits)
+      }).catch(() => {
+        // Ignore errors - user might not be logged in
+      })
+    }
+  }, [isOpen, success])
 
   const handleClose = () => {
     if (loading) return
@@ -80,10 +94,31 @@ export function TradeModal({ market, isOpen, initialSide, onClose }: TradeModalP
       console.log('🔍 [TradeModal] Token check:', token ? `Token exists (${token.substring(0, 20)}...)` : '❌ NO TOKEN FOUND')
       console.log('🔍 [TradeModal] Request data:', requestData)
       
-      await ordersApi.create(requestData)
-      resetState()
-      onClose()
-      alert('Order placed successfully!')
+      const order = await ordersApi.create(requestData)
+      
+      // Calculate cost
+      const cost = currentPrice * stakeAmount
+      
+      // Show success state
+      setSuccess({ cost, quantity: stakeAmount, side })
+      
+      // Refresh user credits
+      try {
+        const creditsData = await usersApi.getCredits()
+        setUserCredits(creditsData.credits)
+        // Trigger a page refresh to update TopNav
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new Event('creditsUpdated'))
+        }
+      } catch (err) {
+        console.error('Failed to refresh credits:', err)
+      }
+      
+      // Auto-close after 2 seconds
+      setTimeout(() => {
+        resetState()
+        onClose()
+      }, 2000)
     } catch (err: any) {
       const detail = err?.response?.data?.detail || 'Failed to place order.'
       setError(detail)
@@ -177,6 +212,26 @@ export function TradeModal({ market, isOpen, initialSide, onClose }: TradeModalP
           </div>
         )}
 
+        {success && (
+          <div className="mb-4 text-xs bg-green-950/30 border border-green-800/50 rounded-lg px-3 py-2">
+            <div className="flex items-center gap-2 text-green-400">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              <span className="font-semibold">Order placed successfully!</span>
+            </div>
+            <div className="mt-2 space-y-1 text-green-300/80">
+              <div>Staked {success.quantity.toFixed(2)} pts on {success.side.toUpperCase()}</div>
+              <div>Cost: {success.cost.toFixed(2)} pts</div>
+              {userCredits !== null && (
+                <div className="pt-1 border-t border-green-800/50">
+                  Remaining: {userCredits.toFixed(2)} pts
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Order form - Polymarket style: clean and compact */}
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Stake (points) + quick buttons */}
@@ -207,8 +262,15 @@ export function TradeModal({ market, isOpen, initialSide, onClose }: TradeModalP
             </div>
           </div>
 
+          {/* Available points display */}
+          {userCredits !== null && !success && (
+            <div className="text-xs text-pm-text-secondary text-center">
+              Available: <span className="font-semibold text-pm-text-primary">{userCredits.toFixed(2)} pts</span>
+            </div>
+          )}
+
           {/* Cost summary - Polymarket style: minimal and clean */}
-          {quantity && parseFloat(quantity) >= 1 && (
+          {quantity && parseFloat(quantity) >= 1 && !success && (
             <div className="bg-pm-bg-secondary/50 border border-pm-border/50 rounded-lg p-3 space-y-2">
               <div className="flex justify-between text-xs">
                 <span className="text-pm-text-secondary">Price per share</span>
@@ -222,6 +284,14 @@ export function TradeModal({ market, isOpen, initialSide, onClose }: TradeModalP
                   {(currentPrice * parseFloat(quantity || '0')).toFixed(2)} pts
                 </span>
               </div>
+              {userCredits !== null && (
+                <div className="flex justify-between text-xs pt-1 border-t border-pm-border/30">
+                  <span className="text-pm-text-secondary">After trade</span>
+                  <span className="font-semibold text-pm-text-primary">
+                    {(userCredits - (currentPrice * parseFloat(quantity || '0'))).toFixed(2)} pts
+                  </span>
+                </div>
+              )}
               <div className="flex justify-between text-xs">
                 <span className="text-pm-text-secondary">Max payout</span>
                 <span className="font-semibold text-pm-text-primary">
@@ -232,17 +302,19 @@ export function TradeModal({ market, isOpen, initialSide, onClose }: TradeModalP
           )}
 
           {/* Submit - Polymarket style: large, prominent button */}
-          <button
-            type="submit"
-            disabled={loading || !quantity || parseFloat(quantity) < 1}
-            className={`w-full py-3.5 rounded-lg text-sm font-semibold mt-4 transition-all duration-200 ${
-              side === 'yes'
-                ? 'bg-pm-green hover:bg-pm-green/90 text-white shadow-md shadow-pm-green/20'
-                : 'bg-pm-red hover:bg-pm-red/90 text-white shadow-md shadow-pm-red/20'
-            } disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-opacity-50`}
-          >
-            {loading ? 'Placing order…' : `Stake ${side.toUpperCase()}`}
-          </button>
+          {!success && (
+            <button
+              type="submit"
+              disabled={loading || !quantity || parseFloat(quantity) < 1}
+              className={`w-full py-3.5 rounded-lg text-sm font-semibold mt-4 transition-all duration-200 ${
+                side === 'yes'
+                  ? 'bg-pm-green hover:bg-pm-green/90 text-white shadow-md shadow-pm-green/20'
+                  : 'bg-pm-red hover:bg-pm-red/90 text-white shadow-md shadow-pm-red/20'
+              } disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-opacity-50`}
+            >
+              {loading ? 'Placing order…' : `Stake ${side.toUpperCase()}`}
+            </button>
+          )}
         </form>
       </div>
     </div>

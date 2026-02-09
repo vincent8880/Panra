@@ -148,6 +148,17 @@ export const marketsApi = {
   },
 }
 
+export interface Position {
+  id: number
+  market: number
+  market_title: string
+  yes_shares: string
+  no_shares: string
+  yes_avg_cost: string
+  no_avg_cost: string
+  updated_at: string
+}
+
 export const ordersApi = {
   create: async (data: { market: number; side: 'yes' | 'no'; order_type: 'limit' | 'market'; price: string; quantity: string }) => {
     const response = await api.post<Order>('/trading/orders/', data)
@@ -159,8 +170,20 @@ export const ordersApi = {
     return response.data
   },
   
+  getOpen: async () => {
+    const response = await api.get<Order[]>('/trading/orders/open/')
+    return response.data
+  },
+  
   cancel: async (id: number) => {
     const response = await api.post(`/trading/orders/${id}/cancel/`)
+    return response.data
+  },
+}
+
+export const positionsApi = {
+  getAll: async () => {
+    const response = await api.get<Position[]>('/trading/positions/')
     return response.data
   },
 }

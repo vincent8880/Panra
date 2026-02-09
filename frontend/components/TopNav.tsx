@@ -29,6 +29,16 @@ export function TopNav() {
     }
 
     fetchUser()
+
+    // Listen for credits updates (from TradeModal)
+    const handleCreditsUpdate = () => {
+      fetchUser()
+    }
+    window.addEventListener('creditsUpdated', handleCreditsUpdate)
+
+    return () => {
+      window.removeEventListener('creditsUpdated', handleCreditsUpdate)
+    }
   }, [])
 
   const handleLogout = async () => {
@@ -61,6 +71,11 @@ export function TopNav() {
               <Link href="/leaderboard" className="nav-link">
                 Leaderboard
               </Link>
+              {user && (
+                <Link href="/orders" className="nav-link">
+                  My Orders
+                </Link>
+              )}
             </nav>
           </div>
 
