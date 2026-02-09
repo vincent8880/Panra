@@ -152,6 +152,7 @@ class GoogleOAuthCallbackView(View):
             
             callback_url = request.build_absolute_uri('/auth/google/callback/')
             logger.info(f"OAuth callback - client_id exists: {bool(client_id)}, callback_url: {callback_url}")
+            logger.info(f"Request details - scheme: {request.scheme}, host: {request.get_host()}, path: {request.path}")
 
             token_response = requests.post(
                 'https://oauth2.googleapis.com/token',
@@ -164,12 +165,23 @@ class GoogleOAuthCallbackView(View):
                 },
                 timeout=10,
             )
+            
+            logger.info(f"Token exchange request sent with redirect_uri: {callback_url}")
 
             if token_response.status_code != 200:
-                error_text = token_response.text[:200]  # Limit error text length
-                logger.error(f"Token exchange failed: {token_response.status_code} - {error_text}")
+                error_text = token_response.text[:500]  # Get more error details
+                try:
+                    error_json = token_response.json()
+                    error_detail = error_json.get('error_description', error_json.get('error', 'Unknown error'))
+                    logger.error(f"Token exchange failed: {token_response.status_code} - {error_detail}")
+                    logger.error(f"Full response: {error_text}")
+                    logger.error(f"Callback URL used: {callback_url}")
+                    logger.error(f"Client ID: {client_id[:20]}... (truncated)")
+                except:
+                    logger.error(f"Token exchange failed: {token_response.status_code} - {error_text}")
+                
                 from urllib.parse import quote
-                error_msg = quote(f"Token exchange failed: {token_response.status_code}")
+                error_msg = quote(f"Token exchange failed: {token_response.status_code}. Check Railway logs for details.")
                 redirect_url = f"{frontend_url}/login?google_auth=error&reason=token_exchange&message={error_msg}"
                 return self._redirect_response(redirect_url)
 
