@@ -166,13 +166,15 @@ export const ordersApi = {
   },
   
   getAll: async () => {
-    const response = await api.get<Order[]>('/trading/orders/')
-    return response.data
+    const response = await api.get<{ results: Order[] } | Order[]>('/trading/orders/')
+    // Handle paginated response
+    return Array.isArray(response.data) ? response.data : response.data.results
   },
   
   getOpen: async () => {
-    const response = await api.get<Order[]>('/trading/orders/open/')
-    return response.data
+    const response = await api.get<{ results: Order[] } | Order[]>('/trading/orders/open/')
+    // Handle paginated response
+    return Array.isArray(response.data) ? response.data : response.data.results
   },
   
   cancel: async (id: number) => {
@@ -183,8 +185,9 @@ export const ordersApi = {
 
 export const positionsApi = {
   getAll: async () => {
-    const response = await api.get<Position[]>('/trading/positions/')
-    return response.data
+    const response = await api.get<{ results: Position[] } | Position[]>('/trading/positions/')
+    // Handle paginated response
+    return Array.isArray(response.data) ? response.data : response.data.results
   },
 }
 
