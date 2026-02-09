@@ -25,7 +25,8 @@ def get_frontend_url():
     import os
     frontend = config('FRONTEND_URL', default=None)
     if frontend and frontend != 'http://localhost:3000':
-        return frontend
+        # Strip whitespace and trailing slashes
+        return frontend.strip().rstrip('/')
     if os.getenv('RAILWAY_ENVIRONMENT') or os.getenv('RAILWAY_PROJECT_ID'):
         return 'https://panra-ke.up.railway.app'
     return 'http://localhost:3000'
@@ -131,10 +132,12 @@ class GoogleOAuthCallbackView(View):
     def get(self, request):
         code = request.GET.get('code')
         error = request.GET.get('error')
-        frontend_url = get_frontend_url()
+        frontend_url = get_frontend_url().strip().rstrip('/')  # Ensure no whitespace
 
         if error or not code:
-            return self._redirect_response(f"{frontend_url}/login?google_auth=error")
+            redirect_url = f"{frontend_url}/login?google_auth=error"
+            logger.error(f"OAuth callback error or no code. Redirecting to: {redirect_url}")
+            return self._redirect_response(redirect_url)
 
         try:
             # Exchange code for tokens
@@ -155,7 +158,8 @@ class GoogleOAuthCallbackView(View):
 
             if token_response.status_code != 200:
                 logger.error(f"Token exchange failed: {token_response.status_code} - {token_response.text}")
-                return self._redirect_response(f"{frontend_url}/login?google_auth=error")
+                redirect_url = f"{frontend_url}/login?google_auth=error"
+                return self._redirect_response(redirect_url)
 
             tokens = token_response.json()
             access_token = tokens.get('access_token')
@@ -169,7 +173,8 @@ class GoogleOAuthCallbackView(View):
 
             if userinfo_response.status_code != 200:
                 logger.error(f"Userinfo fetch failed: {userinfo_response.status_code} - {userinfo_response.text}")
-                return self._redirect_response(f"{frontend_url}/login?google_auth=error")
+                redirect_url = f"{frontend_url}/login?google_auth=error"
+                return self._redirect_response(redirect_url)
 
             userinfo = userinfo_response.json()
             google_id = userinfo.get('id')
@@ -182,7 +187,8 @@ class GoogleOAuthCallbackView(View):
             user = self._get_or_create_user(google_id, email, name, access_token, tokens)
             if not user:
                 logger.error("Failed to get or create user")
-                return self._redirect_response(f"{frontend_url}/login?google_auth=error")
+                redirect_url = f"{frontend_url}/login?google_auth=error"
+                return self._redirect_response(redirect_url)
             
             # Generate JWT token for API authentication
             from rest_framework_simplejwt.tokens import RefreshToken
@@ -202,7 +208,8 @@ class GoogleOAuthCallbackView(View):
 
         except Exception as e:
             logger.exception(f"OAuth error: {e}")
-            return self._redirect_response(f"{frontend_url}/login?google_auth=error")
+            redirect_url = f"{frontend_url}/login?google_auth=error"
+            return self._redirect_response(redirect_url)
     
     def _get_or_create_user(self, google_id, email, name, access_token, tokens):
         """Get existing user or create new one."""
@@ -353,6 +360,10 @@ class GoogleOAuthCallbackView(View):
         import html as html_module
         import json
 
+        # Clean and validate URL - strip any whitespace
+        url = url.strip()
+        logger.info(f"Redirecting to cleaned URL: {url}")
+        
         # Escape URL for HTML (prevents XSS)
         url_html = html_module.escape(url)
         # Escape URL for JavaScript (prevents XSS)
