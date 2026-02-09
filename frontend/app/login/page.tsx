@@ -67,11 +67,14 @@ export default function LoginPage() {
     setError(null)
     setGoogleLoading(true)
     try {
+      console.log('🔍 [LoginPage] Initiating Google login...')
       const authUrl = await authApi.getGoogleAuthUrl()
+      console.log('🔍 [LoginPage] Got Google auth URL:', authUrl)
       // Redirect to Google OAuth
       window.location.href = authUrl
     } catch (err: any) {
-      const detail = err?.response?.data?.detail || 'Failed to initiate Google login.'
+      console.error('❌ [LoginPage] Google login error:', err)
+      const detail = err?.response?.data?.detail || err?.message || 'Failed to initiate Google login. Please try again.'
       setError(detail)
       setGoogleLoading(false)
     }
