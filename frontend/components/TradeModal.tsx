@@ -22,8 +22,6 @@ export function TradeModal({ market, isOpen, initialSide, onClose }: TradeModalP
   const [success, setSuccess] = useState<{ cost: number; quantity: number; side: 'yes' | 'no' } | null>(null)
   const [userCredits, setUserCredits] = useState<number | null>(null)
 
-  if (!isOpen) return null
-
   const currentPrice = side === 'yes'
     ? parseFloat(market.yes_price)
     : parseFloat(market.no_price)
@@ -126,6 +124,8 @@ export function TradeModal({ market, isOpen, initialSide, onClose }: TradeModalP
       setLoading(false)
     }
   }
+
+  if (!isOpen) return null
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm">
