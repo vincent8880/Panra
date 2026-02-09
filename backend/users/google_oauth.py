@@ -196,9 +196,9 @@ class GoogleOAuthCallbackView(View):
             request.session.save()
             
             # Redirect with token
-            return self._redirect_response(
-                f"{frontend_url}/login?google_auth=success&token={jwt_token}"
-            )
+            redirect_url = f"{frontend_url}/login?google_auth=success&token={jwt_token}"
+            logger.info(f"Redirecting user to: {redirect_url}")
+            return self._redirect_response(redirect_url)
 
         except Exception as e:
             logger.exception(f"OAuth error: {e}")
@@ -363,6 +363,7 @@ class GoogleOAuthCallbackView(View):
 <head>
     <meta charset="utf-8">
     <title>Redirecting...</title>
+    <meta http-equiv="refresh" content="0;url={url_html}">
 </head>
 <body style="background:#0a0a0a;color:#fff;font-family:sans-serif;display:flex;justify-content:center;align-items:center;height:100vh;margin:0;">
     <div style="text-align:center;">
@@ -372,8 +373,25 @@ class GoogleOAuthCallbackView(View):
         </p>
     </div>
     <script>
-        console.log("Redirecting to:", {url_js});
-        window.location.href = {url_js};
+        (function() {{
+            console.log("Redirecting to:", {url_js});
+            // Try multiple redirect methods for maximum compatibility
+            try {{
+                window.location.replace({url_js});
+            }} catch (e) {{
+                console.error("window.location.replace failed:", e);
+                try {{
+                    window.location.href = {url_js};
+                }} catch (e2) {{
+                    console.error("window.location.href failed:", e2);
+                    // Fallback: click the link programmatically
+                    var link = document.getElementById('fallback-link');
+                    if (link) {{
+                        link.click();
+                    }}
+                }}
+            }}
+        }})();
     </script>
 </body>
 </html>"""
