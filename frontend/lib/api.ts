@@ -211,7 +211,10 @@ export interface UserStats {
 
 export const usersApi = {
   getMe: async () => {
+    const token = tokenStorage.get()
+    console.log('🔍 [usersApi.getMe] Token check:', token ? `Token exists (${token.substring(0, 20)}...)` : '❌ NO TOKEN')
     const response = await api.get<User>('/auth/users/me/')
+    console.log('✅ [usersApi.getMe] Success, user:', response.data.username)
     return response.data
   },
   

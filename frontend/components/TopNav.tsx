@@ -11,10 +11,17 @@ export function TopNav() {
 
   useEffect(() => {
     const fetchUser = async () => {
+      // Check if token exists first
+      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
+      console.log('🔍 [TopNav] Checking auth state, token exists:', token ? `Yes (${token.substring(0, 20)}...)` : 'No')
+      
       try {
+        console.log('🔍 [TopNav] Calling usersApi.getMe()...')
         const me = await usersApi.getMe()
+        console.log('✅ [TopNav] User authenticated:', me.username)
         setUser(me)
-      } catch {
+      } catch (err: any) {
+        console.error('❌ [TopNav] Not authenticated or error:', err?.response?.status, err?.response?.data)
         // not logged in, ignore
       } finally {
         setLoading(false)

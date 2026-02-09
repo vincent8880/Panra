@@ -20,16 +20,26 @@ export default function LoginPage() {
     const googleAuth = searchParams?.get('google_auth')
     const token = searchParams?.get('token')
     
+    console.log('🔍 [LoginPage] Google auth callback check:', { googleAuth, hasToken: !!token })
+    
     if (googleAuth === 'success') {
       // Extract and store JWT token from URL
       if (token) {
+        console.log('✅ [LoginPage] Storing token from Google callback:', token.substring(0, 20) + '...')
         tokenStorage.set(token)
+        // Verify it was stored
+        const storedToken = tokenStorage.get()
+        console.log('🔍 [LoginPage] Token stored, verification:', storedToken ? `Token exists (${storedToken.substring(0, 20)}...)` : '❌ NO TOKEN FOUND')
+        
         // Remove token from URL for security
         const url = new URL(window.location.href)
         url.searchParams.delete('token')
         window.history.replaceState({}, '', url.toString())
+      } else {
+        console.error('❌ [LoginPage] Google auth success but NO TOKEN in URL!')
       }
       // Redirect to home
+      console.log('🔍 [LoginPage] Redirecting to home...')
       router.push('/')
     } else if (googleAuth === 'error') {
       const reason = searchParams?.get('reason')
