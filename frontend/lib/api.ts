@@ -33,10 +33,19 @@ api.interceptors.request.use((config) => {
   const token = tokenStorage.get()
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
+    // Only log for non-auth endpoints to reduce noise
+    if (!config.url?.includes('/auth/')) {
+      console.log('✅ [API Interceptor] Token attached:', config.method?.toUpperCase(), config.url, `(${token.substring(0, 20)}...)`)
+    }
+  } else {
+    // Only warn for protected endpoints
+    if (!config.url?.includes('/auth/') && !config.url?.includes('/markets/')) {
+      console.warn('⚠️ [API Interceptor] NO TOKEN:', config.method?.toUpperCase(), config.url)
+    }
   }
   return config
 })
-
+ 
 // Handle 401 errors (token expired)
 api.interceptors.response.use(
   (response) => response,
@@ -250,6 +259,9 @@ export const authApi = {
     // Store JWT token if provided
     if (response.data.token) {
       tokenStorage.set(response.data.token)
+      console.log('✅ [authApi.login] Token stored:', response.data.token.substring(0, 20) + '...')
+    } else {
+      console.warn('⚠️ [authApi.login] NO TOKEN in response!', response.data)
     }
     return response.data
   },

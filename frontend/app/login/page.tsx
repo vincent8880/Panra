@@ -49,11 +49,15 @@ export default function LoginPage() {
     setError(null)
     setLoading(true)
     try {
-      await authApi.login({ username: identifier, email: identifier, password })
+      const response = await authApi.login({ username: identifier, email: identifier, password })
+      console.log('🔍 [LoginPage] Login response:', response)
+      const token = tokenStorage.get()
+      console.log('🔍 [LoginPage] Token after login:', token ? `Token exists (${token.substring(0, 20)}...)` : '❌ NO TOKEN')
       router.push('/')
     } catch (err: any) {
       const detail = err?.response?.data?.detail || 'Login failed. Check your details and try again.'
       setError(detail)
+      console.error('❌ [LoginPage] Login error:', err)
     } finally {
       setLoading(false)
     }

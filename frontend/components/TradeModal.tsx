@@ -68,13 +68,19 @@ export function TradeModal({ market, isOpen, initialSide, onClose }: TradeModalP
         throw authErr
       }
 
-      await ordersApi.create({
+      // Debug: Check token and request data
+      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
+      const requestData = {
         market: market.id,
         side,
         order_type: 'market', // Always use market orders for simplicity
         price: currentPrice.toFixed(4),
         quantity: stakeAmount.toFixed(2),
-      })
+      }
+      console.log('🔍 [TradeModal] Token check:', token ? `Token exists (${token.substring(0, 20)}...)` : '❌ NO TOKEN FOUND')
+      console.log('🔍 [TradeModal] Request data:', requestData)
+      
+      await ordersApi.create(requestData)
       resetState()
       onClose()
       alert('Order placed successfully!')
