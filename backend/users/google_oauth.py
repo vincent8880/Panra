@@ -135,14 +135,23 @@ class GoogleOAuthCallbackView(View):
         frontend_url = get_frontend_url().strip().rstrip('/')  # Ensure no whitespace
 
         if error or not code:
-            redirect_url = f"{frontend_url}/login?google_auth=error"
-            logger.error(f"OAuth callback error or no code. Redirecting to: {redirect_url}")
+            error_msg = f"OAuth callback error: {error}" if error else "No authorization code received"
+            logger.error(error_msg)
+            redirect_url = f"{frontend_url}/login?google_auth=error&reason={error or 'no_code'}"
             return self._redirect_response(redirect_url)
 
         try:
             # Exchange code for tokens
             client_id, client_secret = get_google_credentials()
+            if not client_id or not client_secret:
+                logger.error("Google OAuth credentials not configured (missing client_id or client_secret)")
+                from urllib.parse import quote
+                error_msg = quote("Google OAuth not configured on server")
+                redirect_url = f"{frontend_url}/login?google_auth=error&reason=config&message={error_msg}"
+                return self._redirect_response(redirect_url)
+            
             callback_url = request.build_absolute_uri('/auth/google/callback/')
+            logger.info(f"OAuth callback - client_id exists: {bool(client_id)}, callback_url: {callback_url}")
 
             token_response = requests.post(
                 'https://oauth2.googleapis.com/token',
@@ -157,8 +166,11 @@ class GoogleOAuthCallbackView(View):
             )
 
             if token_response.status_code != 200:
-                logger.error(f"Token exchange failed: {token_response.status_code} - {token_response.text}")
-                redirect_url = f"{frontend_url}/login?google_auth=error"
+                error_text = token_response.text[:200]  # Limit error text length
+                logger.error(f"Token exchange failed: {token_response.status_code} - {error_text}")
+                from urllib.parse import quote
+                error_msg = quote(f"Token exchange failed: {token_response.status_code}")
+                redirect_url = f"{frontend_url}/login?google_auth=error&reason=token_exchange&message={error_msg}"
                 return self._redirect_response(redirect_url)
 
             tokens = token_response.json()
@@ -172,8 +184,11 @@ class GoogleOAuthCallbackView(View):
             )
 
             if userinfo_response.status_code != 200:
-                logger.error(f"Userinfo fetch failed: {userinfo_response.status_code} - {userinfo_response.text}")
-                redirect_url = f"{frontend_url}/login?google_auth=error"
+                error_text = userinfo_response.text[:200]
+                logger.error(f"Userinfo fetch failed: {userinfo_response.status_code} - {error_text}")
+                from urllib.parse import quote
+                error_msg = quote(f"Failed to fetch user info: {userinfo_response.status_code}")
+                redirect_url = f"{frontend_url}/login?google_auth=error&reason=userinfo_fetch&message={error_msg}"
                 return self._redirect_response(redirect_url)
 
             userinfo = userinfo_response.json()
@@ -184,10 +199,13 @@ class GoogleOAuthCallbackView(View):
             logger.info(f"Google user info: id={google_id}, email={email}")
 
             # Find or create user
+            logger.info(f"Attempting to get or create user for Google ID: {google_id}, email: {email}")
             user = self._get_or_create_user(google_id, email, name, access_token, tokens)
             if not user:
-                logger.error("Failed to get or create user")
-                redirect_url = f"{frontend_url}/login?google_auth=error"
+                logger.error("Failed to get or create user - _get_or_create_user returned None")
+                from urllib.parse import quote
+                error_msg = quote("Failed to create or retrieve user account")
+                redirect_url = f"{frontend_url}/login?google_auth=error&reason=user_creation&message={error_msg}"
                 return self._redirect_response(redirect_url)
             
             # Generate JWT token for API authentication
@@ -208,7 +226,9 @@ class GoogleOAuthCallbackView(View):
 
         except Exception as e:
             logger.exception(f"OAuth error: {e}")
-            redirect_url = f"{frontend_url}/login?google_auth=error"
+            from urllib.parse import quote
+            error_msg = quote(str(e)[:200])  # Limit error message length
+            redirect_url = f"{frontend_url}/login?google_auth=error&reason=exception&message={error_msg}"
             return self._redirect_response(redirect_url)
     
     def _get_or_create_user(self, google_id, email, name, access_token, tokens):
