@@ -86,6 +86,7 @@ export interface Order {
   id: number
   market: number
   market_title: string
+  market_slug: string
   user: number
   user_username: string
   side: 'yes' | 'no'
@@ -152,6 +153,7 @@ export interface Position {
   id: number
   market: number
   market_title: string
+  market_slug: string
   yes_shares: string
   no_shares: string
   yes_avg_cost: string

@@ -5,11 +5,12 @@ from .models import Order, Trade, Position
 class OrderSerializer(serializers.ModelSerializer):
     user_username = serializers.CharField(source='user.username', read_only=True)
     market_title = serializers.CharField(source='market.title', read_only=True)
+    market_slug = serializers.SlugField(source='market.slug', read_only=True)
     
     class Meta:
         model = Order
         fields = [
-            'id', 'market', 'market_title', 'user', 'user_username',
+            'id', 'market', 'market_title', 'market_slug', 'user', 'user_username',
             'side', 'order_type', 'price', 'quantity', 'status',
             'filled_quantity', 'created_at', 'updated_at', 'filled_at'
         ]
@@ -50,11 +51,12 @@ class TradeSerializer(serializers.ModelSerializer):
 
 class PositionSerializer(serializers.ModelSerializer):
     market_title = serializers.CharField(source='market.title', read_only=True)
+    market_slug = serializers.SlugField(source='market.slug', read_only=True)
     
     class Meta:
         model = Position
         fields = [
-            'id', 'market', 'market_title', 'yes_shares', 'no_shares',
+            'id', 'market', 'market_title', 'market_slug', 'yes_shares', 'no_shares',
             'yes_avg_cost', 'no_avg_cost', 'updated_at'
         ]
         read_only_fields = ['id', 'updated_at']
