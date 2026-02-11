@@ -132,7 +132,7 @@ export default function OrdersPage() {
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <Link
-                          href={`/markets/${order.market}`}
+                          href={`/markets/${order.market_slug}`}
                           className="text-sm font-semibold text-pm-text-primary hover:text-pm-blue mb-1 block"
                         >
                           {order.market_title}
@@ -190,7 +190,7 @@ export default function OrdersPage() {
                     className="bg-pm-bg-card border border-pm-border rounded-lg p-4"
                   >
                     <Link
-                      href={`/markets/${position.market}`}
+                      href={`/markets/${position.market_slug}`}
                       className="text-sm font-semibold text-pm-text-primary hover:text-pm-blue mb-3 block"
                     >
                       {position.market_title}
