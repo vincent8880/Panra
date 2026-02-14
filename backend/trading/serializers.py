@@ -52,12 +52,18 @@ class TradeSerializer(serializers.ModelSerializer):
 class PositionSerializer(serializers.ModelSerializer):
     market_title = serializers.CharField(source='market.title', read_only=True)
     market_slug = serializers.SlugField(source='market.slug', read_only=True)
+    yes_price = serializers.DecimalField(
+        source='market.yes_price', max_digits=5, decimal_places=4, read_only=True
+    )
+    no_price = serializers.DecimalField(
+        source='market.no_price', max_digits=5, decimal_places=4, read_only=True
+    )
     
     class Meta:
         model = Position
         fields = [
             'id', 'market', 'market_title', 'market_slug', 'yes_shares', 'no_shares',
-            'yes_avg_cost', 'no_avg_cost', 'updated_at'
+            'yes_avg_cost', 'no_avg_cost', 'yes_price', 'no_price', 'updated_at'
         ]
         read_only_fields = ['id', 'updated_at']
 

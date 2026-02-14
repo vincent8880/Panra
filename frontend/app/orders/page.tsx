@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { ordersApi, positionsApi, Order, Position, usersApi } from 'lib/api'
+import { TopNav } from 'components/TopNav'
 
 export default function OrdersPage() {
   const router = useRouter()
@@ -30,7 +31,7 @@ export default function OrdersPage() {
         ))
       } catch (err: any) {
         if (err?.response?.status === 401 || err?.response?.status === 403) {
-          router.push('/login')
+          router.push('/login?next=/orders')
         }
       } finally {
         setLoading(false)
@@ -75,18 +76,20 @@ export default function OrdersPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-pm-bg-primary">
+      <main className="min-h-screen bg-pm-bg-primary">
+        <TopNav />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center text-pm-text-secondary">Loading...</div>
         </div>
-      </div>
+      </main>
     )
   }
 
   return (
-    <div className="min-h-screen bg-pm-bg-primary">
+    <main className="min-h-screen bg-pm-bg-primary">
+      <TopNav />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="text-2xl font-semibold text-pm-text-primary mb-6">My Trading Activity</h1>
+        <h1 className="text-2xl font-semibold text-pm-text-primary mb-6">Portfolio</h1>
 
         {/* Tabs */}
         <div className="flex gap-2 mb-6 border-b border-pm-border">
@@ -205,6 +208,22 @@ export default function OrdersPage() {
                           <div className="text-xs text-pm-text-secondary mt-1">
                             Avg: {(parseFloat(position.yes_avg_cost) * 100).toFixed(1)}%
                           </div>
+                          {position.yes_price != null && (
+                            <div className="text-xs mt-1">
+                              Now: {(parseFloat(position.yes_price) * 100).toFixed(1)}%
+                              {(() => {
+                                const pnl = (parseFloat(position.yes_price) - parseFloat(position.yes_avg_cost)) * parseFloat(position.yes_shares)
+                                const pnlPct = parseFloat(position.yes_avg_cost) > 0
+                                  ? ((parseFloat(position.yes_price) - parseFloat(position.yes_avg_cost)) / parseFloat(position.yes_avg_cost) * 100)
+                                  : 0
+                                return (
+                                  <span className={pnl >= 0 ? 'text-pm-green' : 'text-pm-red'}>
+                                    {' '}({pnl >= 0 ? '+' : ''}{(pnl * 100).toFixed(1)} pts, {pnl >= 0 ? '+' : ''}{pnlPct.toFixed(1)}%)
+                                  </span>
+                                )
+                              })()}
+                            </div>
+                          )}
                         </div>
                       )}
                       {parseFloat(position.no_shares) > 0 && (
@@ -216,6 +235,22 @@ export default function OrdersPage() {
                           <div className="text-xs text-pm-text-secondary mt-1">
                             Avg: {(parseFloat(position.no_avg_cost) * 100).toFixed(1)}%
                           </div>
+                          {position.no_price != null && (
+                            <div className="text-xs mt-1">
+                              Now: {(parseFloat(position.no_price) * 100).toFixed(1)}%
+                              {(() => {
+                                const pnl = (parseFloat(position.no_price) - parseFloat(position.no_avg_cost)) * parseFloat(position.no_shares)
+                                const pnlPct = parseFloat(position.no_avg_cost) > 0
+                                  ? ((parseFloat(position.no_price) - parseFloat(position.no_avg_cost)) / parseFloat(position.no_avg_cost) * 100)
+                                  : 0
+                                return (
+                                  <span className={pnl >= 0 ? 'text-pm-green' : 'text-pm-red'}>
+                                    {' '}({pnl >= 0 ? '+' : ''}{(pnl * 100).toFixed(1)} pts, {pnl >= 0 ? '+' : ''}{pnlPct.toFixed(1)}%)
+                                  </span>
+                                )
+                              })()}
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
@@ -229,7 +264,7 @@ export default function OrdersPage() {
           </div>
         )}
       </div>
-    </div>
+    </main>
   )
 }
 

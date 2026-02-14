@@ -53,9 +53,10 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       // Token expired or invalid, clear it
       tokenStorage.remove()
-      // Redirect to login if not already there
+      // Redirect to login if not already there, preserve return URL
       if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
-        window.location.href = '/login'
+        const next = encodeURIComponent(window.location.pathname + window.location.search)
+        window.location.href = `/login?next=${next}`
       }
     }
     return Promise.reject(error)
@@ -158,6 +159,8 @@ export interface Position {
   no_shares: string
   yes_avg_cost: string
   no_avg_cost: string
+  yes_price?: string
+  no_price?: string
   updated_at: string
 }
 

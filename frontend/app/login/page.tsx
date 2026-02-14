@@ -38,9 +38,10 @@ export default function LoginPage() {
       } else {
         console.error('❌ [LoginPage] Google auth success but NO TOKEN in URL!')
       }
-      // Redirect to home
-      console.log('🔍 [LoginPage] Redirecting to home...')
-      router.push('/')
+      // Redirect to next param or home
+      const next = searchParams?.get('next')
+      const redirectTo = next && next.startsWith('/') && !next.startsWith('//') ? next : '/'
+      router.push(redirectTo)
     } else if (googleAuth === 'error') {
       const reason = searchParams?.get('reason')
       const message = searchParams?.get('message')
@@ -63,7 +64,9 @@ export default function LoginPage() {
       console.log('🔍 [LoginPage] Login response:', response)
       const token = tokenStorage.get()
       console.log('🔍 [LoginPage] Token after login:', token ? `Token exists (${token.substring(0, 20)}...)` : '❌ NO TOKEN')
-      router.push('/')
+      const next = searchParams?.get('next')
+      const redirectTo = next && next.startsWith('/') && !next.startsWith('//') ? next : '/'
+      router.push(redirectTo)
     } catch (err: any) {
       const detail = err?.response?.data?.detail || 'Login failed. Check your details and try again.'
       setError(detail)

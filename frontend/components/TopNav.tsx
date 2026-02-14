@@ -73,7 +73,7 @@ export function TopNav() {
               </Link>
               {user && (
                 <Link href="/orders" className="nav-link">
-                  My Orders
+                  Portfolio
                 </Link>
               )}
             </nav>
