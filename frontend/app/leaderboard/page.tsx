@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import PanraLogo from 'components/PanraIcon'
+import { TopNav } from 'components/TopNav'
 
 interface LeaderboardUser {
   id: number
@@ -67,33 +67,8 @@ export default function LeaderboardPage() {
 
   return (
     <main className="min-h-screen bg-pm-bg-primary">
-      {/* Header */}
-      <header className="bg-pm-bg-primary border-b border-pm-border sticky top-0 z-50 backdrop-blur-sm bg-pm-bg-primary/80">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-8">
-              <Link href="/" className="flex items-center">
-                <PanraLogo size={28} />
-              </Link>
-              <nav className="hidden md:flex items-center space-x-6">
-                <Link href="/" className="nav-link">
-                  Markets
-                </Link>
-                <Link href="/leaderboard" className="nav-link font-semibold text-pm-blue">
-                  Leaderboard
-                </Link>
-              </nav>
-            </div>
-            <div className="flex items-center space-x-4">
-              <button className="btn-primary text-sm">
-                Connect Wallet
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
+      <TopNav />
 
-      {/* Main Content */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-pm-text-primary mb-2">Leaderboard</h1>
@@ -187,18 +162,21 @@ export default function LeaderboardPage() {
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
+                          <Link
+                            href={`/users/${encodeURIComponent(user.username)}`}
+                            className="flex items-center hover:opacity-90 transition-opacity"
+                          >
                             <div className="flex-shrink-0 h-10 w-10 rounded-full bg-pm-blue/20 flex items-center justify-center mr-3">
                               <span className="text-pm-blue font-semibold">
                                 {user.username.charAt(0).toUpperCase()}
                               </span>
                             </div>
                             <div>
-                              <div className="text-sm font-medium text-pm-text-primary">
+                              <div className="text-sm font-medium text-pm-text-primary hover:text-pm-blue">
                                 {user.username}
                               </div>
                             </div>
-                          </div>
+                          </Link>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right">
                           <div className="text-sm font-semibold text-pm-text-primary">
@@ -245,6 +223,9 @@ export default function LeaderboardPage() {
     </main>
   )
 }
+
+
+
 
 
 

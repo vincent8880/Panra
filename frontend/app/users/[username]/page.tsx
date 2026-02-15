@@ -3,116 +3,72 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import PanraLogo from 'components/PanraIcon'
-
-interface UserStats {
-  user: {
-    id: number
-    username: string
-    total_points: number
-    weekly_points: number
-    monthly_points: number
-    rank: number
-  }
-  trading: {
-    win_streak: number
-    best_win_streak: number
-    markets_predicted_correctly: number
-    total_markets_traded: number
-    accuracy_percentage: number
-    roi_percentage: number
-    total_trades: number
-    markets_traded: number
-    active_positions: number
-  }
-  credits: {
-    current: number
-    stored: number
-    max: number
-  }
-  volume: {
-    total_volume_traded: number
-    total_profit_loss: number
-    unrealized_pnl: number
-  }
-}
+import { statsApi } from 'lib/api'
+import type { UserStats } from 'lib/api'
+import { TopNav } from 'components/TopNav'
 
 export default function UserProfilePage() {
   const params = useParams()
+  const username = typeof params.username === 'string' ? params.username : ''
   const [stats, setStats] = useState<UserStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    if (!username) {
+      setLoading(false)
+      setError('Invalid username')
+      return
+    }
     const fetchStats = async () => {
       setLoading(true)
       setError(null)
       try {
-        // For now, we'll use a placeholder - in production, you'd get user ID from username
-        // This would require a username lookup endpoint
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001'}/api/auth/stats/me/`,
-          {
-            credentials: 'include'
-          }
-        )
-        if (response.ok) {
-          const data = await response.json()
-          setStats(data)
+        const data = await statsApi.getUserStatsByUsername(username)
+        setStats(data)
+      } catch (err: any) {
+        if (err?.response?.status === 404) {
+          setError('User not found')
         } else {
-          setError('Failed to load user stats')
+          setError('Failed to load profile')
         }
-      } catch (err) {
-        console.error('Error fetching stats:', err)
-        setError('Error loading user stats')
       } finally {
         setLoading(false)
       }
     }
 
     fetchStats()
-  }, [params.username])
+  }, [username])
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-pm-bg-primary flex items-center justify-center">
-        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-pm-blue"></div>
-      </div>
+      <main className="min-h-screen bg-pm-bg-primary">
+        <TopNav />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 flex justify-center">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-pm-blue" />
+        </div>
+      </main>
     )
   }
 
   if (error || !stats) {
     return (
-      <div className="min-h-screen bg-pm-bg-primary flex items-center justify-center">
-        <p className="text-pm-text-secondary">{error || 'User not found'}</p>
-      </div>
+      <main className="min-h-screen bg-pm-bg-primary">
+        <TopNav />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
+          <p className="text-pm-text-secondary mb-4">{error || 'User not found'}</p>
+          <Link href="/" className="text-pm-blue hover:text-pm-blue/80 font-medium">
+            Back to Markets
+          </Link>
+        </div>
+      </main>
     )
   }
 
   return (
     <main className="min-h-screen bg-pm-bg-primary">
-      {/* Header */}
-      <header className="bg-pm-bg-primary border-b border-pm-border sticky top-0 z-50 backdrop-blur-sm bg-pm-bg-primary/80">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-8">
-              <Link href="/" className="flex items-center">
-                <PanraLogo size={28} />
-              </Link>
-              <nav className="hidden md:flex items-center space-x-6">
-                <Link href="/" className="nav-link">
-                  Markets
-                </Link>
-                <Link href="/leaderboard" className="nav-link">
-                  Leaderboard
-                </Link>
-              </nav>
-            </div>
-          </div>
-        </div>
-      </header>
+      <TopNav />
 
-      {/* Main Content */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Profile Header */}
         <div className="bg-pm-bg-card rounded-lg border border-pm-border p-6 mb-6">
@@ -320,6 +276,9 @@ export default function UserProfilePage() {
     </main>
   )
 }
+
+
+
 
 
 

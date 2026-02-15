@@ -353,9 +353,16 @@ export const statsApi = {
     const response = await api.get<UserStats>('/auth/stats/me/')
     return response.data
   },
-  
+
   getUserStats: async (userId: number) => {
     const response = await api.get<UserStats>(`/auth/stats/${userId}/stats/`)
+    return response.data
+  },
+
+  getUserStatsByUsername: async (username: string) => {
+    const response = await api.get<UserStats>(
+      `/auth/stats/by-username/${encodeURIComponent(username)}/`
+    )
     return response.data
   },
 }

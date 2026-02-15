@@ -343,9 +343,20 @@ class UserStatsViewSet(viewsets.ViewSet):
     
     @action(detail=True, methods=['get'])
     def stats(self, request, pk=None):
-        """Get stats for a specific user (public)."""
+        """Get stats for a specific user by ID (public)."""
         try:
             user = User.objects.get(pk=pk)
+            stats = self._calculate_user_stats(user)
+            return Response(stats)
+        except User.DoesNotExist:
+            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+    
+    @action(detail=False, methods=['get'], url_path='by-username/(?P<username>[^/.]+)',
+            permission_classes=[AllowAny])
+    def by_username(self, request, username=None):
+        """Get stats for a user by username (public profile)."""
+        try:
+            user = User.objects.get(username__iexact=username)
             stats = self._calculate_user_stats(user)
             return Response(stats)
         except User.DoesNotExist:
