@@ -74,9 +74,12 @@ export default function OrdersPage() {
                     key={position.id}
                     className="bg-pm-bg-card border border-pm-border rounded-lg p-4"
                   >
-                    <div className="text-sm font-semibold text-pm-text-primary mb-3 cursor-default">
+                    <Link
+                      href={`/markets/${position.market_slug}`}
+                      className="text-sm font-semibold text-pm-text-primary hover:text-pm-blue mb-3 block"
+                    >
                       {position.market_title}
-                    </div>
+                    </Link>
                     <div className="grid grid-cols-2 gap-4">
                       {parseFloat(position.yes_shares) > 0 && (
                         <div className="bg-pm-green/10 border border-pm-green/30 rounded-lg p-3">
