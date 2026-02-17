@@ -19,7 +19,7 @@ export function TradeModal({ market, isOpen, initialSide, onClose }: TradeModalP
   const [loading, setLoading] = useState(false)
   const [authRequired, setAuthRequired] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState<{ cost: number; quantity: number; side: 'yes' | 'no' } | null>(null)
+  const [success, setSuccess] = useState<{ cost: number; quantity: number; side: 'yes' | 'no'; filled: boolean } | null>(null)
   const [userCredits, setUserCredits] = useState<number | null>(null)
 
   const currentPrice = side === 'yes'
@@ -80,41 +80,47 @@ export function TradeModal({ market, isOpen, initialSide, onClose }: TradeModalP
         throw authErr
       }
 
-      // Debug: Check token and request data
-      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
       const requestData: Parameters<typeof ordersApi.create>[0] = {
         market: market.id,
         side,
-        order_type: 'market', // Always use market orders for simplicity
+        order_type: 'market',
         price: currentPrice.toFixed(4),
         quantity: stakeAmount.toFixed(2),
       }
-      console.log('🔍 [TradeModal] Token check:', token ? `Token exists (${token.substring(0, 20)}...)` : '❌ NO TOKEN FOUND')
-      console.log('🔍 [TradeModal] Request data:', requestData)
-      
       const order = await ordersApi.create(requestData)
       
-      // Calculate cost
       const cost = currentPrice * stakeAmount
+      const filled = order?.status === 'filled' || order?.status === 'partial'
+      setSuccess({ cost, quantity: stakeAmount, side, filled })
       
-      // Show success state
-      setSuccess({ cost, quantity: stakeAmount, side })
-      
-      // Refresh user credits and notify TopNav so points next to sign-in update
-      try {
-        const creditsData = await usersApi.getCredits(true)
-        const newCurrentCredits = creditsData.current_credits ?? creditsData.credits
-        setUserCredits(newCurrentCredits)
-        if (typeof window !== 'undefined') {
-          window.dispatchEvent(new CustomEvent('creditsUpdated', { detail: { current_credits: newCurrentCredits } }))
+      // Only refresh/deduct credits when order actually filled
+      if (filled) {
+        try {
+          const creditsData = await usersApi.getCredits(true)
+          const newCurrentCredits = creditsData.current_credits ?? creditsData.credits
+          setUserCredits(newCurrentCredits)
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('creditsUpdated', { detail: { current_credits: newCurrentCredits } }))
+          }
+        } catch (err) {
+          console.error('Failed to refresh credits:', err)
+          const optimisticCredits = userCredits != null ? userCredits - cost : undefined
+          if (typeof optimisticCredits === 'number' && typeof window !== 'undefined') {
+            setUserCredits(optimisticCredits)
+            window.dispatchEvent(new CustomEvent('creditsUpdated', { detail: { current_credits: optimisticCredits } }))
+          }
         }
-      } catch (err) {
-        console.error('Failed to refresh credits:', err)
-        // Optimistic update: deduct cost so nav reflects change even if getCredits fails
-        const optimisticCredits = userCredits != null ? userCredits - cost : undefined
-        if (typeof optimisticCredits === 'number' && typeof window !== 'undefined') {
-          setUserCredits(optimisticCredits)
-          window.dispatchEvent(new CustomEvent('creditsUpdated', { detail: { current_credits: optimisticCredits } }))
+      } else {
+        // Pending: refresh credits to show no change (order didn't fill)
+        try {
+          const creditsData = await usersApi.getCredits(true)
+          const newCurrentCredits = creditsData.current_credits ?? creditsData.credits
+          setUserCredits(newCurrentCredits)
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('creditsUpdated', { detail: { current_credits: newCurrentCredits } }))
+          }
+        } catch {
+          // Ignore
         }
       }
       
@@ -219,19 +225,33 @@ export function TradeModal({ market, isOpen, initialSide, onClose }: TradeModalP
         )}
 
         {success && (
-          <div className="mb-4 text-xs bg-green-950/30 border border-green-800/50 rounded-lg px-3 py-2">
-            <div className="flex items-center gap-2 text-green-400">
+          <div className={`mb-4 text-xs border rounded-lg px-3 py-2 ${
+            success.filled
+              ? 'bg-green-950/30 border-green-800/50'
+              : 'bg-amber-950/30 border-amber-800/50'
+          }`}>
+            <div className={`flex items-center gap-2 ${success.filled ? 'text-green-400' : 'text-amber-400'}`}>
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
-              <span className="font-semibold">Order placed successfully!</span>
+              <span className="font-semibold">
+                {success.filled ? 'Order filled!' : 'Order placed, waiting for match'}
+              </span>
             </div>
-            <div className="mt-2 space-y-1 text-green-300/80">
+            <div className={`mt-2 space-y-1 ${success.filled ? 'text-green-300/80' : 'text-amber-300/80'}`}>
               <div>Staked {success.quantity.toFixed(2)} pts on {success.side.toUpperCase()}</div>
-              <div>Cost: {success.cost.toFixed(2)} pts</div>
-              {userCredits !== null && (
-                <div className="pt-1 border-t border-green-800/50">
-                  Remaining: {userCredits.toFixed(2)} pts
+              {success.filled ? (
+                <>
+                  <div>Cost: {success.cost.toFixed(2)} pts</div>
+                  {userCredits !== null && (
+                    <div className="pt-1 border-t border-green-800/50">
+                      Remaining: {userCredits.toFixed(2)} pts
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="text-amber-400/90">
+                  Credits not deducted until matched. Check Portfolio for open orders.
                 </div>
               )}
             </div>

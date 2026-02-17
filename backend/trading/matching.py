@@ -19,12 +19,9 @@ def match_orders(new_order):
     """
     Match a new order against existing orders and execute trades.
     
-    Algorithm:
-    1. Find matching orders (opposite side, compatible price)
-    2. Execute trades at the best available price
-    3. Update market prices using VWAP (Volume Weighted Average Price)
-    4. Update positions and credits
-    5. Handle partial fills
+    Prediction market matching: Buy YES at P matches with Buy NO at (1-P).
+    - User A buys YES at 60¢, User B buys NO at 40¢ → complementary (60+40=100¢)
+    - Both pay; A gets YES shares, B gets NO shares.
     
     Returns: List of created Trade objects
     """
@@ -32,77 +29,105 @@ def match_orders(new_order):
         trades = []
         remaining_quantity = new_order.quantity
         
-        # Determine what we're looking for
-        # If buying YES, we need someone selling YES (same side, opposite action)
-        # If buying NO, we need someone selling NO (same side, opposite action)
-        # For now, we match same-side orders where price is compatible
-        # Note: In a full system, we'd track buy vs sell orders separately
-        # For simplicity, we match orders of the same side where prices overlap
-        
+        # Opposite-side matching: Buy YES at P ↔ Buy NO at (1-P)
         if new_order.side == 'yes':
-            # Buying YES - look for YES orders with compatible price
-            # Match if their price <= our price (we're willing to pay their ask)
-            matching_orders = Order.objects.filter(
-                market=new_order.market,
-                side='yes',
-                status__in=['pending', 'partial'],
-                price__lte=new_order.price
-            ).exclude(user=new_order.user).order_by('price', 'created_at')
-            
-        else:  # new_order.side == 'no'
-            # Buying NO - look for NO orders with compatible price
+            # Buying YES at P - match with Buy NO at (1-P)
+            # Their NO price must be <= (1 - our YES price) for compatibility
+            our_yes_price = new_order.price
+            compatible_no_price = Decimal('1') - our_yes_price
             matching_orders = Order.objects.filter(
                 market=new_order.market,
                 side='no',
                 status__in=['pending', 'partial'],
-                price__lte=new_order.price
+                price__lte=compatible_no_price
+            ).exclude(user=new_order.user).order_by('price', 'created_at')
+        else:
+            # Buying NO at P - match with Buy YES at (1-P)
+            our_no_price = new_order.price
+            compatible_yes_price = Decimal('1') - our_no_price
+            matching_orders = Order.objects.filter(
+                market=new_order.market,
+                side='yes',
+                status__in=['pending', 'partial'],
+                price__lte=compatible_yes_price
             ).exclude(user=new_order.user).order_by('price', 'created_at')
         
-        # Try to match against existing orders
         for matching_order in matching_orders:
             if remaining_quantity <= 0:
                 break
             
-            # Determine trade price (use the better price for the new order)
-            # If new order is limit, use matching order's price (better for new order)
-            trade_price = matching_order.price
-            
-            # Calculate how much we can fill
             available_quantity = matching_order.quantity - matching_order.filled_quantity
             fill_quantity = min(remaining_quantity, available_quantity)
             
             if fill_quantity <= 0:
                 continue
             
-            # Create the trade
-            # Determine which is buy and which is sell based on order creation time
-            # Earlier order is the "seller" (maker), later is "buyer" (taker)
-            if new_order.created_at < matching_order.created_at:
-                buy_order = matching_order
-                sell_order = new_order
+            # Assign yes/no orders and prices (yes_price + no_price = 1.00)
+            if new_order.side == 'yes':
+                yes_order = new_order
+                no_order = matching_order
+                yes_price = new_order.price
+                no_price = matching_order.price
             else:
-                buy_order = new_order
-                sell_order = matching_order
+                yes_order = matching_order
+                no_order = new_order
+                yes_price = matching_order.price
+                no_price = new_order.price
             
-            trade = create_trade(
-                buy_order=buy_order,
-                sell_order=sell_order,
-                price=trade_price,
+            trade = create_trade_complementary(
+                yes_order=yes_order,
+                no_order=no_order,
+                yes_price=yes_price,
+                no_price=no_price,
                 quantity=fill_quantity
             )
             trades.append(trade)
             
-            # Update order statuses
             update_order_after_trade(new_order, fill_quantity)
             update_order_after_trade(matching_order, fill_quantity)
-            
             remaining_quantity -= fill_quantity
         
-        # Update market price based on trades (VWAP)
         if trades:
             update_market_price(new_order.market, trades)
         
         return trades
+
+
+def create_trade_complementary(yes_order, no_order, yes_price, no_price, quantity):
+    """
+    Create a trade when matching Buy YES with Buy NO (complementary orders).
+    Both users pay; yes_buyer gets YES shares, no_buyer gets NO shares.
+    """
+    yes_buyer = yes_order.user
+    no_buyer = no_order.user
+    market = yes_order.market
+    quantity = Decimal(str(quantity))
+    
+    yes_cost = yes_price * quantity
+    no_cost = no_price * quantity
+    
+    trade = Trade.objects.create(
+        market=market,
+        buy_order=yes_order,
+        sell_order=no_order,
+        buyer=yes_buyer,
+        seller=no_buyer,
+        side='yes',
+        price=yes_price,
+        quantity=quantity,
+        total_value=yes_cost + no_cost,
+        executed_at=timezone.now()
+    )
+    
+    yes_buyer.update_credits_from_trade(-yes_cost)
+    no_buyer.update_credits_from_trade(-no_cost)
+    update_position(yes_buyer, market, 'yes', quantity, yes_price, is_buy=True)
+    update_position(no_buyer, market, 'no', quantity, no_price, is_buy=True)
+    
+    market.total_volume += yes_cost + no_cost
+    market.save(update_fields=['total_volume'])
+    
+    return trade
 
 
 def create_trade(buy_order, sell_order, price, quantity):
@@ -270,12 +295,22 @@ def update_market_price(market, trades):
     ).order_by('-executed_at')[:100]
     
     for trade in recent_trades:
+        # Complementary trades: total_value = yes_cost + no_cost = quantity
+        is_complementary = abs(trade.total_value - trade.quantity) < Decimal('0.01')
         if trade.side == 'yes':
-            yes_total_value += trade.total_value
+            yes_val = (trade.price * trade.quantity) if is_complementary else trade.total_value
+            yes_total_value += yes_val
             yes_total_quantity += trade.quantity
-        else:  # trade.side == 'no'
-            no_total_value += trade.total_value
+            if is_complementary:
+                no_total_value += (Decimal('1') - trade.price) * trade.quantity
+                no_total_quantity += trade.quantity
+        else:
+            no_val = (trade.price * trade.quantity) if is_complementary else trade.total_value
+            no_total_value += no_val
             no_total_quantity += trade.quantity
+            if is_complementary:
+                yes_total_value += (Decimal('1') - trade.price) * trade.quantity
+                yes_total_quantity += trade.quantity
     
     # Calculate VWAP
     if yes_total_quantity > 0:
