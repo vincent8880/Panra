@@ -3,52 +3,42 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { TopNav } from 'components/TopNav'
-
-interface LeaderboardUser {
-  id: number
-  username: string
-  total_points: number
-  weekly_points: number
-  monthly_points: number
-  win_streak: number
-  accuracy_percentage: number
-  roi_percentage: number
-  rank?: number
-}
+import { leaderboardApi } from 'lib/api'
+import type { LeaderboardUser } from 'lib/api'
 
 interface LeaderboardData {
   results: LeaderboardUser[]
-  type: 'all-time' | 'weekly' | 'monthly'
+  type: string
 }
 
 export default function LeaderboardPage() {
   const [leaderboard, setLeaderboard] = useState<LeaderboardData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [type, setType] = useState<'all-time' | 'weekly' | 'monthly'>('all-time')
 
-  useEffect(() => {
-    const fetchLeaderboard = async () => {
-      setLoading(true)
-      try {
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001'}/api/auth/leaderboard/${type === 'all-time' ? 'all-time' : type}/`
-        )
-        if (response.ok) {
-          const data = await response.json()
-          // Add rank numbers
-          const resultsWithRank = data.results.map((user: LeaderboardUser, index: number) => ({
-            ...user,
-            rank: index + 1
-          }))
-          setLeaderboard({ ...data, results: resultsWithRank })
-        }
-      } catch (error) {
-        console.error('Error fetching leaderboard:', error)
-      } finally {
-        setLoading(false)
-      }
+  const fetchLeaderboard = async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const data = type === 'all-time'
+        ? await leaderboardApi.getAllTime()
+        : type === 'weekly'
+          ? await leaderboardApi.getWeekly()
+          : await leaderboardApi.getMonthly()
+      const resultsWithRank = (data.results || []).map((user: LeaderboardUser, index: number) => ({
+        ...user,
+        rank: index + 1
+      }))
+      setLeaderboard({ ...data, results: resultsWithRank })
+    } catch (err) {
+      setError('Couldn\'t load leaderboard. Please try again.')
+    } finally {
+      setLoading(false)
     }
+  }
 
+  useEffect(() => {
     fetchLeaderboard()
   }, [type])
 
@@ -113,6 +103,16 @@ export default function LeaderboardPage() {
         {loading ? (
           <div className="text-center py-12">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-pm-blue"></div>
+          </div>
+        ) : error ? (
+          <div className="text-center py-12">
+            <p className="text-pm-text-secondary mb-4">{error}</p>
+            <button
+              onClick={() => fetchLeaderboard()}
+              className="px-4 py-2 rounded-lg bg-pm-blue hover:bg-pm-blue/90 text-white font-medium text-sm"
+            >
+              Try again
+            </button>
           </div>
         ) : leaderboard && leaderboard.results.length > 0 ? (
           <div className="bg-pm-bg-card rounded-lg border border-pm-border overflow-hidden">

@@ -33,11 +33,11 @@ export function TradeModal({ market, isOpen, initialSide, onClose }: TradeModalP
     setSuccess(null)
   }
 
-  // Fetch user credits when modal opens
+  // Fetch user credits when modal opens (use current_credits = spendable balance)
   useEffect(() => {
     if (isOpen && !success) {
       usersApi.getCredits().then(data => {
-        setUserCredits(data.credits)
+        setUserCredits(data.current_credits ?? data.credits)
       }).catch(() => {
         // Ignore errors - user might not be logged in
       })
@@ -100,16 +100,22 @@ export function TradeModal({ market, isOpen, initialSide, onClose }: TradeModalP
       // Show success state
       setSuccess({ cost, quantity: stakeAmount, side })
       
-      // Refresh user credits
+      // Refresh user credits and notify TopNav so points next to sign-in update
       try {
-        const creditsData = await usersApi.getCredits()
-        setUserCredits(creditsData.credits)
-        // Trigger a page refresh to update TopNav
+        const creditsData = await usersApi.getCredits(true)
+        const newCurrentCredits = creditsData.current_credits ?? creditsData.credits
+        setUserCredits(newCurrentCredits)
         if (typeof window !== 'undefined') {
-          window.dispatchEvent(new Event('creditsUpdated'))
+          window.dispatchEvent(new CustomEvent('creditsUpdated', { detail: { current_credits: newCurrentCredits } }))
         }
       } catch (err) {
         console.error('Failed to refresh credits:', err)
+        // Optimistic update: deduct cost so nav reflects change even if getCredits fails
+        const optimisticCredits = userCredits != null ? userCredits - cost : undefined
+        if (typeof optimisticCredits === 'number' && typeof window !== 'undefined') {
+          setUserCredits(optimisticCredits)
+          window.dispatchEvent(new CustomEvent('creditsUpdated', { detail: { current_credits: optimisticCredits } }))
+        }
       }
       
       // Auto-close after 2 seconds

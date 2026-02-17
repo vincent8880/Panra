@@ -249,8 +249,13 @@ export const usersApi = {
     return response.data
   },
   
-  getCredits: async () => {
-    const response = await api.get<{ credits: number; status: CreditStatus }>('/auth/users/credits/')
+  getCredits: async (noCache = false) => {
+    const params = noCache ? { _t: Date.now() } : undefined
+    const response = await api.get<{
+      credits: number
+      current_credits: number
+      credit_status: CreditStatus
+    }>('/auth/users/credits/', { params })
     return response.data
   },
 }

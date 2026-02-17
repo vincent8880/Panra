@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { authApi } from 'lib/api'
+import { authApi, tokenStorage } from 'lib/api'
 
 export default function SignupPage() {
   const router = useRouter()
@@ -17,12 +17,20 @@ export default function SignupPage() {
   const [error, setError] = useState<string | null>(null)
   const [showEmailForm, setShowEmailForm] = useState(false)
 
-  // Check for Google auth callback
+  // Check for Google auth callback (backend redirects to /login, but can land on /signup via link)
   useEffect(() => {
     const googleAuth = searchParams?.get('google_auth')
+    const token = searchParams?.get('token')
     if (googleAuth === 'success') {
-      // User successfully logged in via Google, refresh and redirect
-      router.push('/')
+      if (token) {
+        tokenStorage.set(token)
+        const url = new URL(window.location.href)
+        url.searchParams.delete('token')
+        window.history.replaceState({}, '', url.toString())
+      }
+      const next = searchParams?.get('next')
+      const redirectTo = next && next.startsWith('/') && !next.startsWith('//') ? next : '/'
+      router.push(redirectTo)
     } else if (googleAuth === 'error') {
       setError('Google authentication failed. Please try again.')
     }

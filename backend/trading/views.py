@@ -66,9 +66,8 @@ class OrderViewSet(viewsets.ModelViewSet):
         # Save the order
         order = serializer.save(user=self.request.user)
         
-        # Deduct credits when order is placed
-        # Note: Credits will be adjusted when order is filled/cancelled
-        user.update_credits_from_trade(-cost)
+        # Credits are deducted only when a trade executes (in matching.create_trade).
+        # We do NOT deduct here to avoid double-deduction when order matches immediately.
         
         # Try to match the order immediately
         try:

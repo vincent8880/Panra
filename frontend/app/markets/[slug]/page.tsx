@@ -17,19 +17,41 @@ export default function MarketDetailPage() {
 
   useEffect(() => {
     const fetchMarket = async () => {
-      try {
-        const data = await marketsApi.getBySlug(params.slug as string)
-        setMarket(data)
-      } catch (error) {
-        console.error('Error fetching market:', error)
-      } finally {
+      if (!params.slug) {
         setLoading(false)
+        return
       }
+
+      const slug = params.slug as string
+      console.log('🔍 [MarketDetailPage] Loading market for slug:', slug)
+
+      try {
+        // First try by slug (normal path)
+        const data = await marketsApi.getBySlug(slug)
+        setMarket(data)
+        return
+      } catch (error: any) {
+        console.error('⚠️ [MarketDetailPage] Fetch by slug failed, trying by ID if numeric. Error:', error)
+      }
+
+      // Fallback: if slug looks like a numeric ID, try fetching by ID
+      const asNumber = Number(slug)
+      if (!Number.isNaN(asNumber)) {
+        try {
+          const data = await marketsApi.getById(asNumber)
+          setMarket(data)
+          return
+        } catch (error) {
+          console.error('❌ [MarketDetailPage] Fetch by ID also failed:', error)
+        }
+      }
+
+      // If we reach here, market really wasn't found
+      setMarket(null)
+      setLoading(false)
     }
 
-    if (params.slug) {
-      fetchMarket()
-    }
+    fetchMarket()
   }, [params.slug])
 
   if (loading) {

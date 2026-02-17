@@ -60,17 +60,19 @@ export default function LoginPage() {
     setError(null)
     setLoading(true)
     try {
-      const response = await authApi.login({ username: identifier, email: identifier, password })
-      console.log('🔍 [LoginPage] Login response:', response)
+      await authApi.login({ username: identifier, email: identifier, password })
       const token = tokenStorage.get()
-      console.log('🔍 [LoginPage] Token after login:', token ? `Token exists (${token.substring(0, 20)}...)` : '❌ NO TOKEN')
+      if (!token) {
+        setError('Login succeeded but session could not be established. Please try again.')
+        setLoading(false)
+        return
+      }
       const next = searchParams?.get('next')
       const redirectTo = next && next.startsWith('/') && !next.startsWith('//') ? next : '/'
       router.push(redirectTo)
     } catch (err: any) {
       const detail = err?.response?.data?.detail || 'Login failed. Check your details and try again.'
       setError(detail)
-      console.error('❌ [LoginPage] Login error:', err)
     } finally {
       setLoading(false)
     }

@@ -30,14 +30,28 @@ export function TopNav() {
 
     fetchUser()
 
-    // Listen for credits updates (from TradeModal)
-    const handleCreditsUpdate = () => {
+    // Listen for credits updates (from TradeModal after a bet, or Portfolio)
+    const handleCreditsUpdate = (e: Event) => {
+      const customEvent = e as CustomEvent<{ current_credits?: number }>
+      const newCredits = customEvent.detail?.current_credits
+      if (typeof newCredits === 'number') {
+        setUser(prev => prev ? { ...prev, current_credits: newCredits } : null)
+      }
       fetchUser()
     }
     window.addEventListener('creditsUpdated', handleCreditsUpdate)
 
+    // Refetch credits when user returns to tab (e.g. after selling/winning elsewhere)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchUser()
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
     return () => {
       window.removeEventListener('creditsUpdated', handleCreditsUpdate)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
   }, [])
 
