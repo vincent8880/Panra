@@ -135,8 +135,9 @@ export interface AuthResponse {
 
 export const marketsApi = {
   getAll: async (params?: { status?: string; category?: string; search?: string }) => {
-    const response = await api.get<{ results: Market[] }>('/markets/', { params })
-    return response.data.results
+    const response = await api.get<{ results?: Market[] } | Market[]>('/markets/', { params })
+    const data = response.data
+    return Array.isArray(data) ? data : (data?.results ?? [])
   },
   
   getById: async (id: number) => {

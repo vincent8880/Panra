@@ -1,23 +1,26 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import Link from 'next/link'
 import { marketsApi, Market } from 'lib/api'
 import { formatDistanceToNow } from 'date-fns'
 
 export function MarketList() {
   const [markets, setMarkets] = useState<Market[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [filter, setFilter] = useState<'all' | 'open'>('all')
 
   useEffect(() => {
     const fetchMarkets = async () => {
+      setError(null)
       try {
         const params = filter === 'open' ? { status: 'open' } : {}
         const data = await marketsApi.getAll(params)
-        setMarkets(data)
-      } catch (error) {
-        console.error('Error fetching markets:', error)
+        setMarkets(Array.isArray(data) ? data : [])
+      } catch (err: any) {
+        console.error('Error fetching markets:', err)
+        const msg = err?.response?.data?.detail || err?.message || 'Failed to load markets'
+        setError(typeof msg === 'string' ? msg : 'Failed to load markets')
       } finally {
         setLoading(false)
       }
@@ -63,12 +66,12 @@ export function MarketList() {
       {/* Market Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {markets.map((market) => (
-          <Link 
+          <a 
             key={market.id} 
             href={`/markets/${market.slug}`}
-            className="block w-full no-underline"
+            className="block w-full no-underline relative z-10 cursor-pointer"
           >
-            <div className="market-card group w-full h-full">
+            <div className="market-card group w-full h-full cursor-pointer">
               {/* Market Image */}
               {market.image_url && (
                 <div className="w-full h-40 mb-4 rounded-lg overflow-hidden bg-pm-bg-secondary">
@@ -120,13 +123,24 @@ export function MarketList() {
                 </div>
               </div>
             </div>
-          </Link>
+          </a>
         ))}
       </div>
 
-      {markets.length === 0 && (
+      {error && (
+        <div className="text-center py-12">
+          <p className="text-red-400 mb-2">{error}</p>
+          <p className="text-pm-text-secondary text-sm">
+            Check that the API is running and NEXT_PUBLIC_API_URL is correct.
+          </p>
+        </div>
+      )}
+      {!error && markets.length === 0 && (
         <div className="text-center py-12">
           <p className="text-pm-text-secondary">No markets found</p>
+          <p className="text-pm-text-secondary text-sm mt-2">
+            Run <code className="bg-pm-bg-secondary px-1 rounded">python manage.py create_sample_markets</code> on the backend to seed markets.
+          </p>
         </div>
       )}
     </div>
