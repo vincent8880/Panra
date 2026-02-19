@@ -46,38 +46,32 @@ class OrderViewSet(viewsets.ModelViewSet):
         return Order.objects.filter(user=self.request.user)
     
     def perform_create(self, serializer):
-        # Validate data first before saving
         validated_data = serializer.validated_data
         price = validated_data['price']
         quantity = validated_data['quantity']
-        
-        # Calculate cost: price * quantity
         cost = price * quantity
         
-        # Check if user has enough credits BEFORE creating the order
-        user = self.request.user
-        current_credits = user.get_current_credits()
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
         
-        if current_credits < cost:
-            raise ValidationError({
-                'non_field_errors': [f'Insufficient credits. You have {current_credits:.2f}, need {cost:.2f}']
-            })
+        with transaction.atomic():
+            # Lock user row to prevent race condition when placing multiple orders
+            user = User.objects.select_for_update().get(pk=self.request.user.pk)
+            current_credits = user.credits  # Raw stored credits (spendable balance)
+            
+            if current_credits < cost:
+                raise ValidationError({
+                    'non_field_errors': [f'Insufficient credits. You have {float(current_credits):.2f}, need {float(cost):.2f}']
+                })
+            
+            order = serializer.save(user=user)
+            user.update_credits_from_trade(-cost)
         
-        # Save the order
-        order = serializer.save(user=self.request.user)
-        
-        # Deduct credits when order is placed (reserve funds; refund on cancel)
-        user.update_credits_from_trade(-cost)
-        
-        # Try to match the order immediately (matching updates positions only; credits already deducted)
         try:
             trades = match_orders(order)
             if trades:
-                # Order was (partially) filled
                 order.refresh_from_db()
         except Exception as e:
-            # Log error but don't fail order creation
-            # The order will remain pending and can be matched later
             import logging
             logger = logging.getLogger(__name__)
             logger.error(f"Error matching order {order.id}: {str(e)}")

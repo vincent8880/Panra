@@ -140,11 +140,10 @@ class User(AbstractUser):
     def update_credits_from_trade(self, amount_change):
         """
         Update credits when a trade happens.
-        Positive amount = gain, Negative = loss
+        Uses raw stored credits (not decay/regen) so deductions are correct.
         """
-        
-        # Get current effective credits
-        current = self.get_current_credits()
+        # Use raw stored credits - regeneration/decay are display-only
+        current = self.credits
         
         # Apply the trade
         new_credits = current + Decimal(str(amount_change))

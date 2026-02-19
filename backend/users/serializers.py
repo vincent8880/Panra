@@ -26,8 +26,8 @@ class UserSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'date_joined']
     
     def get_current_credits(self, obj):
-        """Get current credits after decay/regeneration calculation."""
-        return float(obj.get_current_credits())
+        """Spendable credits = raw stored (matches order deduct/check)."""
+        return float(obj.credits)
     
     def get_credit_status(self, obj):
         """Get detailed credit status including decay and regeneration info."""

@@ -47,11 +47,11 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
     
     @action(detail=False, methods=['get'], url_path='credits')
     def credits(self, request):
-        """Get current user's credits."""
+        """Get current user's credits. current_credits = raw stored (spendable)."""
         user = request.user
         return Response({
             'credits': float(user.credits),
-            'current_credits': float(user.get_current_credits()),
+            'current_credits': float(user.credits),  # Spendable = raw stored; matches order deduct
             'credit_status': UserSerializer().get_credit_status(user)
         })
 
