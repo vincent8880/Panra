@@ -66,10 +66,10 @@ class OrderViewSet(viewsets.ModelViewSet):
         # Save the order
         order = serializer.save(user=self.request.user)
         
-        # Credits are deducted only when a trade executes (in matching.create_trade).
-        # We do NOT deduct here to avoid double-deduction when order matches immediately.
+        # Deduct credits when order is placed (reserve funds; refund on cancel)
+        user.update_credits_from_trade(-cost)
         
-        # Try to match the order immediately
+        # Try to match the order immediately (matching updates positions only; credits already deducted)
         try:
             trades = match_orders(order)
             if trades:
@@ -98,6 +98,12 @@ class OrderViewSet(viewsets.ModelViewSet):
         
         if order.status not in ['pending', 'partial']:
             return Response({'error': 'Order cannot be cancelled'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Refund credits for unfilled portion
+        unfilled = order.quantity - order.filled_quantity
+        if unfilled > 0:
+            refund = unfilled * order.price
+            order.user.update_credits_from_trade(refund)
         
         order.status = 'cancelled'
         order.save()

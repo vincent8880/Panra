@@ -119,8 +119,7 @@ def create_trade_complementary(yes_order, no_order, yes_price, no_price, quantit
         executed_at=timezone.now()
     )
     
-    yes_buyer.update_credits_from_trade(-yes_cost)
-    no_buyer.update_credits_from_trade(-no_cost)
+    # Credits already deducted when orders were placed; only update positions
     update_position(yes_buyer, market, 'yes', quantity, yes_price, is_buy=True)
     update_position(no_buyer, market, 'no', quantity, no_price, is_buy=True)
     

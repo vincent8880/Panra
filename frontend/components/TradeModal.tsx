@@ -93,34 +93,20 @@ export function TradeModal({ market, isOpen, initialSide, onClose }: TradeModalP
       const filled = order?.status === 'filled' || order?.status === 'partial'
       setSuccess({ cost, quantity: stakeAmount, side, filled })
       
-      // Only refresh/deduct credits when order actually filled
-      if (filled) {
-        try {
-          const creditsData = await usersApi.getCredits(true)
-          const newCurrentCredits = creditsData.current_credits ?? creditsData.credits
-          setUserCredits(newCurrentCredits)
-          if (typeof window !== 'undefined') {
-            window.dispatchEvent(new CustomEvent('creditsUpdated', { detail: { current_credits: newCurrentCredits } }))
-          }
-        } catch (err) {
-          console.error('Failed to refresh credits:', err)
-          const optimisticCredits = userCredits != null ? userCredits - cost : undefined
-          if (typeof optimisticCredits === 'number' && typeof window !== 'undefined') {
-            setUserCredits(optimisticCredits)
-            window.dispatchEvent(new CustomEvent('creditsUpdated', { detail: { current_credits: optimisticCredits } }))
-          }
+      // Credits are deducted on order placement; refresh display
+      try {
+        const creditsData = await usersApi.getCredits(true)
+        const newCurrentCredits = creditsData.current_credits ?? creditsData.credits
+        setUserCredits(newCurrentCredits)
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('creditsUpdated', { detail: { current_credits: newCurrentCredits } }))
         }
-      } else {
-        // Pending: refresh credits to show no change (order didn't fill)
-        try {
-          const creditsData = await usersApi.getCredits(true)
-          const newCurrentCredits = creditsData.current_credits ?? creditsData.credits
-          setUserCredits(newCurrentCredits)
-          if (typeof window !== 'undefined') {
-            window.dispatchEvent(new CustomEvent('creditsUpdated', { detail: { current_credits: newCurrentCredits } }))
-          }
-        } catch {
-          // Ignore
+      } catch (err) {
+        console.error('Failed to refresh credits:', err)
+        const optimisticCredits = userCredits != null ? userCredits - cost : undefined
+        if (typeof optimisticCredits === 'number' && typeof window !== 'undefined') {
+          setUserCredits(optimisticCredits)
+          window.dispatchEvent(new CustomEvent('creditsUpdated', { detail: { current_credits: optimisticCredits } }))
         }
       }
       
@@ -240,18 +226,15 @@ export function TradeModal({ market, isOpen, initialSide, onClose }: TradeModalP
             </div>
             <div className={`mt-2 space-y-1 ${success.filled ? 'text-green-300/80' : 'text-amber-300/80'}`}>
               <div>Staked {success.quantity.toFixed(2)} pts on {success.side.toUpperCase()}</div>
-              {success.filled ? (
-                <>
-                  <div>Cost: {success.cost.toFixed(2)} pts</div>
-                  {userCredits !== null && (
-                    <div className="pt-1 border-t border-green-800/50">
-                      Remaining: {userCredits.toFixed(2)} pts
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div className="text-amber-400/90">
-                  Credits not deducted until matched. Check Portfolio for open orders.
+              <div>Cost: {success.cost.toFixed(2)} pts</div>
+              {userCredits !== null && (
+                <div className="pt-1 border-t border-green-800/50">
+                  Remaining: {userCredits.toFixed(2)} pts
+                </div>
+              )}
+              {!success.filled && (
+                <div className="text-amber-400/90 text-xs mt-1">
+                  Order pending — view in My Orders to cancel or wait for match.
                 </div>
               )}
             </div>
