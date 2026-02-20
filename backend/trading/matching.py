@@ -120,11 +120,9 @@ def create_trade_complementary(yes_order, no_order, yes_price, no_price, quantit
     )
     
     # Credits already deducted when orders were placed; only update positions
+    # Volume/liquidity already updated when orders were placed; no double-count
     update_position(yes_buyer, market, 'yes', quantity, yes_price, is_buy=True)
     update_position(no_buyer, market, 'no', quantity, no_price, is_buy=True)
-    
-    market.total_volume += yes_cost + no_cost
-    market.save(update_fields=['total_volume'])
     
     return trade
 

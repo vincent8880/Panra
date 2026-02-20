@@ -66,6 +66,12 @@ class OrderViewSet(viewsets.ModelViewSet):
             
             order = serializer.save(user=user)
             user.update_credits_from_trade(-cost)
+            
+            # Update market volume/liquidity when order is placed
+            market = order.market
+            market.total_volume += cost
+            market.total_liquidity += cost
+            market.save(update_fields=['total_volume', 'total_liquidity'])
         
         try:
             trades = match_orders(order)
@@ -98,6 +104,11 @@ class OrderViewSet(viewsets.ModelViewSet):
         if unfilled > 0:
             refund = unfilled * order.price
             order.user.update_credits_from_trade(refund)
+            # Reduce market volume/liquidity by unfilled amount
+            market = order.market
+            market.total_volume = max(0, market.total_volume - refund)
+            market.total_liquidity = max(0, market.total_liquidity - refund)
+            market.save(update_fields=['total_volume', 'total_liquidity'])
         
         order.status = 'cancelled'
         order.save()

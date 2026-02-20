@@ -69,6 +69,7 @@ export interface Market {
   description: string
   slug: string
   question: string
+  resolution_criteria?: string
   category: string
   image_url: string | null
   status: 'open' | 'closed' | 'resolved' | 'cancelled'

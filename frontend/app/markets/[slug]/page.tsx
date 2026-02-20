@@ -95,9 +95,18 @@ export default function MarketDetailPage() {
             {market.title}
           </h1>
 
-          <p className="text-lg text-pm-text-secondary mb-6">
+          <p className="text-lg text-pm-text-secondary mb-4">
             {market.question}
           </p>
+
+          {market.resolution_criteria && (
+            <div className="mb-6 p-4 rounded-lg bg-pm-bg-secondary border border-pm-border">
+              <p className="text-xs font-medium text-pm-text-secondary uppercase tracking-wide mb-1">Resolution criteria</p>
+              <p className="text-sm text-pm-text-primary">
+                This market resolves to YES when: {market.resolution_criteria}
+              </p>
+            </div>
+          )}
 
           <div className="flex items-center space-x-6 text-sm text-pm-text-secondary">
             <span>Created by {market.created_by_username}</span>

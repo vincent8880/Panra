@@ -27,6 +27,10 @@ class Market(models.Model):
     
     # Market details
     question = models.CharField(max_length=500, help_text="The prediction question")
+    resolution_criteria = models.TextField(
+        blank=True,
+        help_text="When does this market resolve to YES? e.g. 'Resolves to YES when Kenya wins AFCON 2024.'"
+    )
     category = models.CharField(max_length=100, blank=True)
     image_url = models.URLField(blank=True, null=True)
     
