@@ -129,12 +129,9 @@ export default function OrdersPage() {
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        <Link
-                          href={`/markets/${order.market_slug}`}
-                          className="text-sm font-semibold text-pm-text-primary hover:text-pm-blue mb-1 block"
-                        >
+                        <div className="text-sm font-semibold text-pm-text-primary mb-1">
                           {order.market_title}
-                        </Link>
+                        </div>
                         <div className="flex items-center gap-4 text-xs text-pm-text-secondary mt-2">
                           <span className={`font-medium ${order.side === 'yes' ? 'text-pm-green' : 'text-pm-red'}`}>
                             {order.side.toUpperCase()}
@@ -187,12 +184,9 @@ export default function OrdersPage() {
                     key={position.id}
                     className="bg-pm-bg-card border border-pm-border rounded-lg p-4"
                   >
-                    <Link
-                      href={`/markets/${position.market_slug}`}
-                      className="text-sm font-semibold text-pm-text-primary hover:text-pm-blue mb-3 block"
-                    >
+                    <div className="text-sm font-semibold text-pm-text-primary mb-3">
                       {position.market_title}
-                    </Link>
+                    </div>
                     <div className="grid grid-cols-2 gap-4">
                       {parseFloat(position.yes_shares) > 0 && (
                         <div className="bg-pm-green/10 border border-pm-green/30 rounded-lg p-3">
