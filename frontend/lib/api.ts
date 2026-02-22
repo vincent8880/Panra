@@ -51,10 +51,10 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Token expired or invalid, clear it
+      const hadToken = !!tokenStorage.get()
       tokenStorage.remove()
-      // Redirect to login if not already there, preserve return URL
-      if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+      // Only redirect if user had a token (session expired). Guests with no token can browse.
+      if (hadToken && typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
         const next = encodeURIComponent(window.location.pathname + window.location.search)
         window.location.href = `/login?next=${next}`
       }
