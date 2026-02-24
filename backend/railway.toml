@@ -1,4 +1,4 @@
-# When Panra's Root Directory is set to "backend", we're already in backend/.
+# When Root Directory is "backend", we're already in backend/. No "cd backend" needed.
 # No need for "cd backend" - run commands directly.
 [build]
 builder = "nixpacks"

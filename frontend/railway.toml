@@ -1,3 +1,6 @@
+# Panra frontend (Next.js) - Root Directory must be "frontend"
+# IMPORTANT: In Railway dashboard, leave Custom Start Command EMPTY so this file is used.
+# Do NOT set Custom Start Command to "cd backend" - that is for the backend service.
 [build]
 builder = "nixpacks"
 
