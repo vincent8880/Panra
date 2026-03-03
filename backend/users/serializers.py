@@ -64,10 +64,13 @@ class UserSerializer(serializers.ModelSerializer):
         }
     
     def get_rank(self, obj):
-        """Calculate user's rank based on total_points."""
-        if obj.total_points <= 0:
+        """Calculate user's rank. Anyone who has traded gets a rank."""
+        if obj.total_markets_traded <= 0:
             return None
-        rank = User.objects.filter(total_points__gt=obj.total_points).count() + 1
+        rank = User.objects.filter(
+            total_points__gt=obj.total_points,
+            total_markets_traded__gt=0,
+        ).count() + 1
         return rank
 
 

@@ -264,10 +264,10 @@ class LeaderboardViewSet(viewsets.ViewSet):
     
     @action(detail=False, methods=['get'], url_path='all-time')
     def all_time(self, request):
-        """Get all-time leaderboard (top 100)."""
+        """Get all-time leaderboard (top 100). Includes anyone who has traded."""
         users = User.objects.filter(
-            total_points__gt=0
-        ).order_by('-total_points', '-accuracy_percentage')[:100]
+            total_markets_traded__gt=0
+        ).order_by('-total_points', '-total_markets_traded', '-accuracy_percentage')[:100]
         
         serializer = UserSerializer(users, many=True)
         return Response({
@@ -277,32 +277,28 @@ class LeaderboardViewSet(viewsets.ViewSet):
     
     @action(detail=False, methods=['get'], url_path='weekly')
     def weekly(self, request):
-        """Get weekly leaderboard (top 100)."""
-        week_start = timezone.now() - timedelta(days=7)
+        """Get weekly leaderboard (top 100). Includes anyone who has traded."""
         users = User.objects.filter(
-            weekly_points__gt=0
-        ).order_by('-weekly_points', '-accuracy_percentage')[:100]
+            total_markets_traded__gt=0
+        ).order_by('-weekly_points', '-total_markets_traded', '-accuracy_percentage')[:100]
         
         serializer = UserSerializer(users, many=True)
         return Response({
             'results': serializer.data,
             'type': 'weekly',
-            'period_start': week_start
         })
     
     @action(detail=False, methods=['get'], url_path='monthly')
     def monthly(self, request):
-        """Get monthly leaderboard (top 100)."""
-        month_start = timezone.now() - timedelta(days=30)
+        """Get monthly leaderboard (top 100). Includes anyone who has traded."""
         users = User.objects.filter(
-            monthly_points__gt=0
-        ).order_by('-monthly_points', '-accuracy_percentage')[:100]
+            total_markets_traded__gt=0
+        ).order_by('-monthly_points', '-total_markets_traded', '-accuracy_percentage')[:100]
         
         serializer = UserSerializer(users, many=True)
         return Response({
             'results': serializer.data,
             'type': 'monthly',
-            'period_start': month_start
         })
     
     @action(detail=False, methods=['get'], url_path='around-me')
@@ -319,8 +315,8 @@ class LeaderboardViewSet(viewsets.ViewSet):
         # Get users around this rank
         offset = max(0, user_rank - 6)
         users = User.objects.filter(
-            total_points__gt=0
-        ).order_by('-total_points', '-accuracy_percentage')[offset:offset+11]
+            total_markets_traded__gt=0
+        ).order_by('-total_points', '-total_markets_traded', '-accuracy_percentage')[offset:offset+11]
         
         serializer = UserSerializer(users, many=True)
         return Response({

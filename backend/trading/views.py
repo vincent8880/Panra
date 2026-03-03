@@ -72,6 +72,18 @@ class OrderViewSet(viewsets.ModelViewSet):
             market.total_volume += cost
             market.total_liquidity += cost
             market.save(update_fields=['total_volume', 'total_liquidity'])
+            
+            # Track user volume so they appear on the leaderboard immediately
+            from users.models import UserProfile
+            profile, _ = UserProfile.objects.get_or_create(user=user)
+            profile.total_volume_traded += cost
+            profile.save(update_fields=['total_volume_traded'])
+            
+            user.total_markets_traded = Order.objects.filter(
+                user=user
+            ).values('market').distinct().count()
+            user.update_points()
+            user.save(update_fields=['total_markets_traded', 'total_points'])
         
         try:
             trades = match_orders(order)

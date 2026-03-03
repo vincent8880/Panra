@@ -207,6 +207,7 @@ export interface LeaderboardUser {
   win_streak: number
   accuracy_percentage: number
   roi_percentage: number
+  total_markets_traded: number
   rank?: number
 }
 

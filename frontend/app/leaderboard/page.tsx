@@ -130,10 +130,10 @@ export default function LeaderboardPage() {
                       Points
                     </th>
                     <th className="px-6 py-4 text-right text-xs font-semibold text-pm-text-secondary uppercase tracking-wider">
-                      Win Rate
+                      Markets
                     </th>
                     <th className="px-6 py-4 text-right text-xs font-semibold text-pm-text-secondary uppercase tracking-wider">
-                      ROI
+                      Win Rate
                     </th>
                     <th className="px-6 py-4 text-right text-xs font-semibold text-pm-text-secondary uppercase tracking-wider">
                       Streak
@@ -185,14 +185,12 @@ export default function LeaderboardPage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right">
                           <div className="text-sm text-pm-text-primary">
-                            {user.accuracy_percentage.toFixed(1)}%
+                            {user.total_markets_traded ?? 0}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right">
-                          <div className={`text-sm font-medium ${
-                            user.roi_percentage >= 0 ? 'text-pm-green' : 'text-red-500'
-                          }`}>
-                            {user.roi_percentage >= 0 ? '+' : ''}{user.roi_percentage.toFixed(1)}%
+                          <div className="text-sm text-pm-text-primary">
+                            {user.accuracy_percentage.toFixed(1)}%
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right">
