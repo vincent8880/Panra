@@ -196,18 +196,17 @@ class User(AbstractUser):
         """
         Update user stats when a market is resolved.
         Called when a market the user traded in gets resolved.
+        Note: total_markets_traded is computed from orders at order-placement time,
+        so we don't increment it here.
         """
-        self.total_markets_traded += 1
-        
         if was_correct:
             self.markets_predicted_correctly += 1
             self.win_streak += 1
             if self.win_streak > self.best_win_streak:
                 self.best_win_streak = self.win_streak
         else:
-            self.win_streak = 0  # Reset streak on loss
+            self.win_streak = 0
         
-        # Update accuracy
         if self.total_markets_traded > 0:
             self.accuracy_percentage = (
                 Decimal(str(self.markets_predicted_correctly)) / 
@@ -215,7 +214,6 @@ class User(AbstractUser):
                 Decimal('100')
             ).quantize(Decimal('0.01'))
         
-        # Update ROI (simplified - can be enhanced)
         if hasattr(self, 'profile'):
             initial_credits = Decimal('10000.00')
             current_credits = self.get_current_credits()
@@ -225,7 +223,7 @@ class User(AbstractUser):
                     Decimal('100')
                 ).quantize(Decimal('0.01'))
         
-        self.update_points()
+        self.total_points = self.calculate_points()
         self.save()
 
 

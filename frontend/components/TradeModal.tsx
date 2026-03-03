@@ -116,8 +116,16 @@ export function TradeModal({ market, isOpen, initialSide, onClose }: TradeModalP
         onClose()
       }, 2000)
     } catch (err: any) {
-      const detail = err?.response?.data?.detail || 'Failed to place order.'
-      setError(detail)
+      const data = err?.response?.data
+      const detail =
+        data?.detail ||
+        data?.non_field_errors?.[0] ||
+        (typeof data === 'object' && data !== null
+          ? Object.values(data).flat().join(' ')
+          : null) ||
+        err?.message ||
+        'Failed to place order.'
+      setError(typeof detail === 'string' ? detail : 'Failed to place order.')
     } finally {
       setLoading(false)
     }

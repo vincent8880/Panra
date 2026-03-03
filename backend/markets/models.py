@@ -75,9 +75,10 @@ class Market(models.Model):
         return self.title
     
     def save(self, *args, **kwargs):
-        # Ensure yes_price + no_price = 1.00
-        if self.yes_price + self.no_price != 1.00:
-            self.no_price = 1.00 - self.yes_price
+        from decimal import Decimal
+        one = Decimal('1.0000')
+        if self.yes_price + self.no_price != one:
+            self.no_price = one - self.yes_price
         super().save(*args, **kwargs)
 
 

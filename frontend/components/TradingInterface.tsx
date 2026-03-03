@@ -35,7 +35,9 @@ export function TradingInterface({ market }: TradingInterfaceProps) {
       setPrice('')
       setQuantity('')
     } catch (error: any) {
-      alert(`Error: ${error.response?.data?.detail || 'Failed to place order'}`)
+      const data = error.response?.data
+      const msg = data?.detail || data?.non_field_errors?.[0] || (typeof data === 'object' && data !== null ? Object.values(data).flat().join(' ') : null) || 'Failed to place order'
+      alert(`Error: ${typeof msg === 'string' ? msg : 'Failed to place order'}`)
     } finally {
       setLoading(false)
     }
