@@ -232,8 +232,8 @@ class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     phone_number = models.CharField(max_length=20, blank=True)
     mpesa_number = models.CharField(max_length=20, blank=True, help_text="M-Pesa phone number (for future use)")
-    total_volume_traded = models.DecimalField(max_digits=20, decimal_places=2, default=0.00)
-    total_profit_loss = models.DecimalField(max_digits=20, decimal_places=2, default=0.00)
+    total_volume_traded = models.DecimalField(max_digits=20, decimal_places=2, default=Decimal('0.00'))
+    total_profit_loss = models.DecimalField(max_digits=20, decimal_places=2, default=Decimal('0.00'))
     
     def __str__(self):
         return f"{self.user.username}'s Profile"

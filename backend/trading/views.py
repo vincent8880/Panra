@@ -89,17 +89,28 @@ class OrderViewSet(viewsets.ModelViewSet):
         # Failures here are logged but never block the order.
         try:
             from users.models import UserProfile
-            profile, _ = UserProfile.objects.get_or_create(user=user)
-            profile.total_volume_traded += cost
+            # Refresh user from DB to avoid stale state after atomic block
+            user.refresh_from_db()
+            
+            profile, created = UserProfile.objects.get_or_create(user=user)
+            logger.info(f"[Leaderboard] user={user.username} profile={'created' if created else 'exists'} vol={profile.total_volume_traded}")
+            
+            profile.total_volume_traded = Decimal(str(profile.total_volume_traded)) + cost
             profile.save(update_fields=['total_volume_traded'])
             
-            user.total_markets_traded = Order.objects.filter(
+            markets_count = Order.objects.filter(
                 user=user
             ).values('market').distinct().count()
+            logger.info(f"[Leaderboard] user={user.username} distinct_markets={markets_count}")
+            
+            user.total_markets_traded = markets_count
             user.total_points = user.calculate_points()
+            logger.info(f"[Leaderboard] user={user.username} points={user.total_points} markets={user.total_markets_traded}")
+            
             user.save(update_fields=['total_markets_traded', 'total_points'])
+            logger.info(f"[Leaderboard] user={user.username} save OK")
         except Exception as e:
-            logger.error(f"Leaderboard update failed for order {order.id}: {e}")
+            logger.error(f"Leaderboard update failed for order {order.id}: {e}", exc_info=True)
         
         try:
             trades = match_orders(order)
