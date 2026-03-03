@@ -143,7 +143,10 @@ export default function LeaderboardPage() {
                 <tbody className="divide-y divide-pm-border">
                   {leaderboard.results.map((user) => {
                     const medal = user.rank ? getMedal(user.rank) : null
-                    const points = user[getPointsField() as keyof LeaderboardUser] as number
+                    const points = Number(user[getPointsField() as keyof LeaderboardUser] ?? 0)
+                    const accuracy = Number(user.accuracy_percentage ?? 0)
+                    const streak = Number(user.win_streak ?? 0)
+                    const markets = Number(user.total_markets_traded ?? 0)
                     
                     return (
                       <tr
@@ -185,19 +188,19 @@ export default function LeaderboardPage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right">
                           <div className="text-sm text-pm-text-primary">
-                            {user.total_markets_traded ?? 0}
+                            {markets}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right">
                           <div className="text-sm text-pm-text-primary">
-                            {user.accuracy_percentage.toFixed(1)}%
+                            {accuracy.toFixed(1)}%
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right">
-                          {user.win_streak > 0 ? (
+                          {streak > 0 ? (
                             <div className="flex items-center justify-end gap-1">
                               <span className="text-sm font-medium text-pm-text-primary">
-                                {user.win_streak}
+                                {streak}
                               </span>
                               <span className="text-orange-500">🔥</span>
                             </div>
