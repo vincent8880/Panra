@@ -46,6 +46,9 @@ class OrderViewSet(viewsets.ModelViewSet):
         return Order.objects.filter(user=self.request.user)
     
     def perform_create(self, serializer):
+        import logging
+        logger = logging.getLogger(__name__)
+
         validated_data = serializer.validated_data
         market_obj = validated_data.get('market')
         if market_obj and market_obj.status != 'open':
@@ -71,34 +74,32 @@ class OrderViewSet(viewsets.ModelViewSet):
             
             order = serializer.save(user=user)
             
-            # Deduct credits (single in-memory update, saved once at the end)
-            new_credits = user.credits + Decimal(str(-cost))
-            user.credits = max(Decimal('0.00'), new_credits)
+            # Deduct credits and save
+            user.credits = max(Decimal('0.00'), user.credits - cost)
             user.base_credits = user.credits
-            user.last_activity_at = timezone.now()
+            user.save(update_fields=['credits', 'base_credits'])
             
             # Update market volume/liquidity
             market = order.market
             market.total_volume += cost
             market.total_liquidity += cost
             market.save(update_fields=['total_volume', 'total_liquidity'])
-            
-            # Track user volume for leaderboard
+        
+        # Leaderboard tracking — runs AFTER the core order succeeds.
+        # Failures here are logged but never block the order.
+        try:
             from users.models import UserProfile
             profile, _ = UserProfile.objects.get_or_create(user=user)
             profile.total_volume_traded += cost
             profile.save(update_fields=['total_volume_traded'])
             
-            # Recount distinct markets traded and recalculate points
             user.total_markets_traded = Order.objects.filter(
                 user=user
             ).values('market').distinct().count()
             user.total_points = user.calculate_points()
-            
-            user.save(update_fields=[
-                'credits', 'base_credits', 'last_activity_at',
-                'total_markets_traded', 'total_points',
-            ])
+            user.save(update_fields=['total_markets_traded', 'total_points'])
+        except Exception as e:
+            logger.error(f"Leaderboard update failed for order {order.id}: {e}")
         
         try:
             trades = match_orders(order)
