@@ -63,6 +63,8 @@ export default function MarketDetailPage() {
     )
   }
 
+  const canTrade = market.status === 'open'
+
   return (
     <main className="min-h-screen bg-pm-bg-primary">
       <TopNav />
@@ -99,6 +101,17 @@ export default function MarketDetailPage() {
             {market.question}
           </p>
 
+          {!canTrade && (
+            <div className="mb-6 p-4 rounded-lg bg-amber-950/30 border border-amber-800/50">
+              <p className="text-xs font-medium text-amber-300 uppercase tracking-wide mb-1">
+                Trading closed
+              </p>
+              <p className="text-sm text-amber-200/90">
+                This market is <span className="capitalize font-semibold">{market.status}</span>. You can view details, but you can’t place new bets.
+              </p>
+            </div>
+          )}
+
           {market.resolution_criteria && (
             <div className="mb-6 p-4 rounded-lg bg-pm-bg-secondary border border-pm-border">
               <p className="text-xs font-medium text-pm-text-secondary uppercase tracking-wide mb-1">Resolution criteria</p>
@@ -128,11 +141,17 @@ export default function MarketDetailPage() {
               </h2>
               <div className="grid grid-cols-2 gap-3">
                 <button
+                  disabled={!canTrade}
                   onClick={() => {
+                    if (!canTrade) return
                     setTradeSide('yes')
                     setTradeOpen(true)
                   }}
-                  className="group flex flex-col items-start justify-between p-4 rounded-xl border border-pm-green/30 bg-pm-green/10 transition-all duration-200 cursor-pointer hover:border-pm-green/60 hover:bg-pm-green/20"
+                  className={`group flex flex-col items-start justify-between p-4 rounded-xl border transition-all duration-200 ${
+                    canTrade
+                      ? 'border-pm-green/30 bg-pm-green/10 cursor-pointer hover:border-pm-green/60 hover:bg-pm-green/20'
+                      : 'border-pm-border bg-pm-bg-secondary/40 cursor-not-allowed opacity-60'
+                  }`}
                 >
                   <span className="text-xs text-pm-green/70 font-medium mb-1 group-hover:text-pm-green transition-colors">
                     YES
@@ -141,15 +160,21 @@ export default function MarketDetailPage() {
                     {(parseFloat(market.yes_price) * 100).toFixed(1)}%
                   </span>
                   <span className="text-[11px] text-pm-text-secondary">
-                    Tap to stake on YES
+                    {canTrade ? 'Tap to stake on YES' : 'Trading closed'}
                   </span>
                 </button>
                 <button
+                  disabled={!canTrade}
                   onClick={() => {
+                    if (!canTrade) return
                     setTradeSide('no')
                     setTradeOpen(true)
                   }}
-                  className="group flex flex-col items-start justify-between p-4 rounded-xl border border-pm-red/30 bg-pm-red/10 transition-all duration-200 cursor-pointer hover:border-pm-red/60 hover:bg-pm-red/20"
+                  className={`group flex flex-col items-start justify-between p-4 rounded-xl border transition-all duration-200 ${
+                    canTrade
+                      ? 'border-pm-red/30 bg-pm-red/10 cursor-pointer hover:border-pm-red/60 hover:bg-pm-red/20'
+                      : 'border-pm-border bg-pm-bg-secondary/40 cursor-not-allowed opacity-60'
+                  }`}
                 >
                   <span className="text-xs text-pm-red/70 font-medium mb-1 group-hover:text-pm-red transition-colors">
                     NO
@@ -158,7 +183,7 @@ export default function MarketDetailPage() {
                     {(parseFloat(market.no_price) * 100).toFixed(1)}%
                   </span>
                   <span className="text-[11px] text-pm-text-secondary">
-                    Tap to stake on NO
+                    {canTrade ? 'Tap to stake on NO' : 'Trading closed'}
                   </span>
                 </button>
               </div>
@@ -177,11 +202,17 @@ export default function MarketDetailPage() {
               </p>
               <div className="grid grid-cols-2 gap-2 mb-4">
                 <button
+                  disabled={!canTrade}
                   onClick={() => {
+                    if (!canTrade) return
                     setTradeSide('yes')
                     setTradeOpen(true)
                   }}
-                  className="group py-2 px-3 rounded-lg text-xs font-semibold bg-pm-bg-secondary border border-pm-border text-left transition-all cursor-pointer hover:border-pm-green/50 hover:bg-pm-green/5 hover:shadow-md hover:shadow-pm-green/10"
+                  className={`group py-2 px-3 rounded-lg text-xs font-semibold border text-left transition-all ${
+                    canTrade
+                      ? 'bg-pm-bg-secondary border-pm-border cursor-pointer hover:border-pm-green/50 hover:bg-pm-green/5 hover:shadow-md hover:shadow-pm-green/10'
+                      : 'bg-pm-bg-secondary/40 border-pm-border cursor-not-allowed opacity-60'
+                  }`}
                 >
                   <div className="text-[11px] text-pm-text-secondary mb-0.5 group-hover:text-pm-green transition-colors">YES</div>
                   <div className="text-base font-bold text-pm-green/60 group-hover:text-pm-green transition-colors">
@@ -189,11 +220,17 @@ export default function MarketDetailPage() {
                   </div>
                 </button>
                 <button
+                  disabled={!canTrade}
                   onClick={() => {
+                    if (!canTrade) return
                     setTradeSide('no')
                     setTradeOpen(true)
                   }}
-                  className="group py-2 px-3 rounded-lg text-xs font-semibold bg-pm-bg-secondary border border-pm-border text-left transition-all cursor-pointer hover:border-pm-red/50 hover:bg-pm-red/5 hover:shadow-md hover:shadow-pm-red/10"
+                  className={`group py-2 px-3 rounded-lg text-xs font-semibold border text-left transition-all ${
+                    canTrade
+                      ? 'bg-pm-bg-secondary border-pm-border cursor-pointer hover:border-pm-red/50 hover:bg-pm-red/5 hover:shadow-md hover:shadow-pm-red/10'
+                      : 'bg-pm-bg-secondary/40 border-pm-border cursor-not-allowed opacity-60'
+                  }`}
                 >
                   <div className="text-[11px] text-pm-text-secondary mb-0.5 group-hover:text-pm-red transition-colors">NO</div>
                   <div className="text-base font-bold text-pm-red/60 group-hover:text-pm-red transition-colors">
@@ -202,10 +239,16 @@ export default function MarketDetailPage() {
                 </button>
               </div>
               <button
-                onClick={() => setTradeOpen(true)}
-                className="w-full btn-primary py-2 text-sm"
+                disabled={!canTrade}
+                onClick={() => {
+                  if (!canTrade) return
+                  setTradeOpen(true)
+                }}
+                className={`w-full py-2 text-sm rounded-lg font-semibold transition-colors ${
+                  canTrade ? 'btn-primary' : 'bg-pm-bg-secondary/40 text-pm-text-secondary border border-pm-border cursor-not-allowed opacity-60'
+                }`}
               >
-                Open trade
+                {canTrade ? 'Open trade' : 'Trading closed'}
               </button>
             </div>
 
@@ -248,7 +291,7 @@ export default function MarketDetailPage() {
       {/* Trading modal (bottom sheet on mobile) */}
       <TradeModal
         market={market}
-        isOpen={tradeOpen}
+        isOpen={tradeOpen && canTrade}
         initialSide={tradeSide}
         onClose={() => setTradeOpen(false)}
       />

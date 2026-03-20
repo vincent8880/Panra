@@ -8,7 +8,7 @@ export function MarketList() {
   const [markets, setMarkets] = useState<Market[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [filter, setFilter] = useState<'all' | 'open'>('all')
+  const [filter, setFilter] = useState<'all' | 'open'>('open')
 
   useEffect(() => {
     const fetchMarkets = async () => {
